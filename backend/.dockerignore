@@ -1,0 +1,39 @@
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tests and test artifacts
+test/
+tests/
+.pytest_cache/
+
+# Linter / formatter cache
+.ruff_cache/
+
+# Build / packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE / editor files
+.vscode/
+.idea/
+
+# Git metadata
+.git/
+.gitignore
+
+# OS generated files
+.DS_Store
+Thumbs.db
