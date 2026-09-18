@@ -1,15 +1,15 @@
 .PHONY: install run test lint help
 
-UVICORN := poetry run uvicorn
+PYTHON := poetry run python
 PYTEST := poetry run pytest
 RUFF := poetry run ruff
 COMPOSE := docker compose
 
 install:
-	poetry install
+	cd backend && poetry install
 
 run:
-	$(UVICORN) ./backend/main:app --reload
+	cd backend/app && $(PYTHON) main.py
 
 docker-build:
 	docker build -t lab:1.0 ./backend/
@@ -27,7 +27,7 @@ clean-compose:
 	$(COMPOSE) down -v
 
 test:
-	$(PYTEST)
+	cd backend && $(PYTEST)
 
 lint:
 	&(RUFF) check .
