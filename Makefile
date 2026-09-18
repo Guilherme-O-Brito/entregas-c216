@@ -9,7 +9,7 @@ install:
 	poetry install
 
 run:
-	$(UVICORN) main:app --reload
+	$(UVICORN) ./backend/main:app --reload
 
 docker-build:
 	docker build -t lab:1.0 ./backend/
