@@ -7,10 +7,11 @@ services:
     image: lab:1.0 
     ports:
       - "8000:8000"
-    #env_file:
-    #  - ./backend/.env
+    environment:
+      DATABASE_URL: mysql+pymysql://dast_api:123ab@mariadb:3306/fast_api_db
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
 
   mariadb:
     image: mariadb:latest
@@ -23,6 +24,11 @@ services:
       MYSQL_DATABASE: fast_api_db
       MYSQL_USER: dast_api
       MYSQL_PASSWORD: 123ab
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - db_data:/var/lib/mysql
 
