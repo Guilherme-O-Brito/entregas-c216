@@ -1,85 +1,88 @@
-from fastapi import APIRouter, status, HTTPException
-from schemas.users import UserCreate, UserResponse, UserListResponse, UserPatch, UserDelete
-from models import User
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
+from app.database.session import get_db
+from app.repositories.user import UserRepository
+from app.schemas.users import (
+    UserCreate,
+    UserDelete,
+    UserListResponse,
+    UserPatch,
+    UserResponse,
+)
+from app.services.user import (
+    UserAlreadyExistsError,
+    UserNotFoundError,
+    UserService,
+)
 
 users_router = APIRouter(prefix="/users", tags=["users"])
 
-@users_router.get("/", response_model=UserListResponse, status_code=status.HTTP_200_OK)
-def index_users():
-    """Indexa todos os usuarios cadastrados"""
-    return {"users": []}
+NOT_FOUND = "Usuario não encontrado."
+ALREADY_EXISTS = "Já existe um usuário com esse e-mail."
 
-@users_router.get("/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
-def get_user(user_id: int):
-    """Faz a leitura do usuario solicitado"""
-    if user_id != 1:
-        raise HTTPException(404, "Usuario não encontrado.")
-    
-    user = User(
-        id=1,
-        name="Guilherme",
-        email="guilherme@email.com",
-        password="1234567890",
-        admin=True
-    )
 
-    return user
+def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:
+    return UserService(UserRepository(db))
 
-@users_router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate):
-    """Cria um novo usuario"""
-    user = User(1, payload.name, payload.email, payload.password, payload.admin)
 
-    return user
+ServiceDep = Annotated[UserService, Depends(get_user_service)]
 
-@users_router.put("/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
-def update_user(user_id: int, payload: UserCreate):
-    """Substitui um usuario por outro"""
-    if user_id != 1:
-        raise HTTPException(404, "Usuario não encontrado.")
-    user = User(1, payload.name, payload.email, payload.password, payload.admin)
 
-    return user
+@users_router.get("/", response_model=UserListResponse)
+def index_users(
+    service: ServiceDep,
+    skip: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1)] = 100,
+):
+    return {"users": service.list(skip, limit)}
 
-@users_router.patch("/{user_id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
-def patch_user(user_id: int, payload: UserPatch):
-    """Atualiza um usuario"""
-    user = User(
-        id=1,
-        name="Guilherme",
-        email="guilherme@email.com",
-        password="1234567890",
-        admin=True
-    )
-    
-    if user_id != 1:
-        raise HTTPException(404, "Usuario não encontrado.")
 
-    if payload.name is not None:
-        user.name = payload.name
-    if payload.email is not None:
-        user.email = payload.email
-    if payload.password is not None:
-        user.password = payload.password
-    if payload.admin is not None:
-        user.admin = payload.admin
+@users_router.get("/{user_id}", response_model=UserResponse)
+def get_user(user_id: int, service: ServiceDep):
+    try:
+        return service.get(user_id)
+    except UserNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND) from None
 
-    return user
 
-@users_router.delete("/{user_id}", response_model=UserDelete, status_code=status.HTTP_200_OK)
-def delete_user(user_id: int):
-    """Deleta um usuario"""
-    user = User(
-        id=1,
-        name="Guilherme",
-        email="guilherme@email.com",
-        password="1234567890",
-        admin=True
-    )
-        
-    if user_id != 1:
-        raise HTTPException(404, "Usuario não encontrado.")
+@users_router.post(
+    "/", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+)
+def create_user(payload: UserCreate, service: ServiceDep):
+    try:
+        return service.create(payload.model_dump())
+    except UserAlreadyExistsError:
+        raise HTTPException(status.HTTP_409_CONFLICT, ALREADY_EXISTS) from None
 
-    del user
 
+@users_router.put("/{user_id}", response_model=UserResponse)
+def update_user(user_id: int, payload: UserCreate, service: ServiceDep):
+    try:
+        return service.update(user_id, payload.model_dump())
+    except UserNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND) from None
+    except UserAlreadyExistsError:
+        raise HTTPException(status.HTTP_409_CONFLICT, ALREADY_EXISTS) from None
+
+
+@users_router.patch("/{user_id}", response_model=UserResponse)
+def patch_user(user_id: int, payload: UserPatch, service: ServiceDep):
+    changes = payload.model_dump(exclude_unset=True, exclude_none=True)
+    try:
+        return service.update(user_id, changes)
+    except UserNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND) from None
+    except UserAlreadyExistsError:
+        raise HTTPException(status.HTTP_409_CONFLICT, ALREADY_EXISTS) from None
+
+
+@users_router.delete("/{user_id}", response_model=UserDelete)
+def delete_user(user_id: int, service: ServiceDep):
+    try:
+        service.delete(user_id)
+    except UserNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, NOT_FOUND) from None
     return {"message": "Usuario deletado."}
