@@ -1,4 +1,4 @@
-.PHONY: install run test lint help
+.PHONY: install run test lint help frontend-install frontend-dev frontend-lint frontend-format frontend-check frontend-test frontend-test-e2e frontend-build check-all
 
 PYTHON := poetry run python
 PYTEST := poetry run pytest
@@ -36,6 +36,32 @@ test:
 lint:
 	cd backend && $(RUFF) check .
 
+frontend-install:
+	npm --prefix frontend ci
+
+frontend-dev:
+	npm --prefix frontend run dev
+
+frontend-lint:
+	npm --prefix frontend run lint
+
+frontend-format:
+	npm --prefix frontend run format
+
+frontend-check:
+	npm --prefix frontend run check
+
+frontend-test:
+	npm --prefix frontend run test
+
+frontend-test-e2e:
+	npm --prefix frontend run test:e2e
+
+frontend-build:
+	npm --prefix frontend run build
+
+check-all: lint test frontend-check frontend-test frontend-build frontend-test-e2e
+
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
@@ -54,6 +80,15 @@ help:
 	@echo "make run                            - inicia servidor"
 	@echo "make test                           - executa testes automatizados"
 	@echo "make lint                           - verifica o código"
+	@echo "make frontend-install               - instala dependencias do frontend"
+	@echo "make frontend-dev                   - inicia o frontend"
+	@echo "make frontend-lint                  - verifica o frontend"
+	@echo "make frontend-format                - formata o frontend"
+	@echo "make frontend-check                 - verifica qualidade do frontend"
+	@echo "make frontend-test                  - executa testes do frontend"
+	@echo "make frontend-test-e2e              - executa testes E2E"
+	@echo "make frontend-build                 - compila o frontend"
+	@echo "make check-all                      - verifica backend e frontend"
 	@echo "make clean                          - limpa caches de execução"
 	@echo "make run-compose                    - executa a aplicação usando docker compose"
 	@echo "make stop-compose                   - para a aplicação que esta rodando no compose sem deletar dados persistentes"
