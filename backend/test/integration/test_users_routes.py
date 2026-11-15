@@ -68,6 +68,22 @@ def test_list_users_starts_empty(client: TestClient) -> None:
     assert response.json() == {"users": []}
 
 
+@pytest.mark.parametrize(
+    ("origin", "allowed"),
+    [("http://localhost:5173", True), ("http://unknown.example", False)],
+)
+def test_cors_preflight(client: TestClient, origin: str, allowed: bool) -> None:
+    response = client.options(
+        "/users/",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert (response.headers.get("access-control-allow-origin") == origin) is allowed
+
+
 def test_create_user_normalizes_email_and_persists_without_returning_password(
     client: TestClient,
 ) -> None:
@@ -173,7 +189,9 @@ def test_put_rejects_an_email_used_by_another_user(client: TestClient) -> None:
     assert response.status_code == 409
 
 
-def test_patch_changes_only_submitted_fields_and_accepts_false(client: TestClient) -> None:
+def test_patch_changes_only_submitted_fields_and_accepts_false(
+    client: TestClient,
+) -> None:
     created = create_user(client, admin=True)
 
     response = client.patch(
