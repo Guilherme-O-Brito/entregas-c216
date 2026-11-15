@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core.config import DATABASE_URL
 
 
-
 @lru_cache
 def get_session_factory():
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
