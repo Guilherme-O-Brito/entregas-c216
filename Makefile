@@ -1,4 +1,4 @@
-.PHONY: install run test lint help frontend-install frontend-dev frontend-lint frontend-format frontend-check frontend-test frontend-test-e2e frontend-build check-all
+.PHONY: install run test lint help frontend-install frontend-dev frontend-lint frontend-format frontend-check frontend-test frontend-test-e2e frontend-build check-all up-build down ps e2e
 
 PYTHON := poetry run python
 PYTEST := poetry run pytest
@@ -20,6 +20,15 @@ docker-clean:
 
 run-compose:
 	$(COMPOSE) up -d
+
+up-build:
+	$(COMPOSE) up -d --build
+
+down:
+	$(COMPOSE) down
+
+ps:
+	$(COMPOSE) ps
 
 stop-compose:
 	$(COMPOSE) down
@@ -60,7 +69,10 @@ frontend-test-e2e:
 frontend-build:
 	npm --prefix frontend run build
 
-check-all: lint test frontend-check frontend-test frontend-build frontend-test-e2e
+e2e:
+	node frontend/scripts/e2e.js
+
+check-all: lint test frontend-check frontend-test frontend-build e2e
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
