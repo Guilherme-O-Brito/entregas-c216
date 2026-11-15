@@ -1,17 +1,16 @@
 import { expect, test } from "@playwright/test";
 
-test("valida e cadastra um item", async ({ page }) => {
+test("cadastra um usuário e mantém os dados após recarregar", async ({
+  page,
+}) => {
+  const email = `teste-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`;
   await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: "Gerenciador de Itens" }),
-  ).toBeVisible();
-  await expect(page.getByText("Nenhum item cadastrado.")).toBeVisible();
+  await page.getByLabel("Nome").fill("Usuário E2E");
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Senha").fill("password123");
   await page.getByRole("button", { name: "Adicionar" }).click();
-  await expect(page.getByRole("alert")).toHaveText("O nome é obrigatório.");
-  await page.getByLabel("Nome").fill("Notebook");
-  await page.getByLabel("Descrição").fill("14 polegadas");
-  await page.getByRole("button", { name: "Adicionar" }).click();
-  await expect(page.getByRole("listitem")).toContainText("Notebook");
-  await expect(page.getByRole("listitem")).toContainText("14 polegadas");
-  await expect(page.getByText("Nenhum item cadastrado.")).toBeHidden();
+  const user = page.getByRole("listitem").filter({ hasText: email });
+  await expect(user).toBeVisible();
+  await page.reload();
+  await expect(user).toBeVisible();
 });
