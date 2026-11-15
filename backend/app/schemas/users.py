@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+
 class UserCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -15,7 +16,12 @@ class UserCreate(BaseModel):
         if len(email) > 254 or email.count("@") != 1:
             raise ValueError("Informe um e-mail válido.")
         local_part, domain = email.rsplit("@", 1)
-        if not local_part or "." not in domain or domain.startswith(".") or domain.endswith("."):
+        if (
+            not local_part
+            or "." not in domain
+            or domain.startswith(".")
+            or domain.endswith(".")
+        ):
             raise ValueError("Informe um e-mail válido.")
         return email
 
@@ -45,7 +51,12 @@ class UserPatch(BaseModel):
         if len(email) > 254 or email.count("@") != 1:
             raise ValueError("Informe um e-mail válido.")
         local_part, domain = email.rsplit("@", 1)
-        if not local_part or "." not in domain or domain.startswith(".") or domain.endswith("."):
+        if (
+            not local_part
+            or "." not in domain
+            or domain.startswith(".")
+            or domain.endswith(".")
+        ):
             raise ValueError("Informe um e-mail válido.")
         return email
 
