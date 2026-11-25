@@ -1,9 +1,11 @@
-.PHONY: help up db-up down db-down db-upgrade db-delete app-key
+.PHONY: help up db-up down db-down db-upgrade db-delete app-key install test
 
 COMPOSE := docker compose
 POETRY := poetry
 
 help:
+	@echo "install  instala dependencias"
+	@echo "test     executa suite de testes completa"
 	@echo "up       inicia o PostgreSQL e o FastAPI"
 	@echo "db-up    inicia apenas o PostgreSQL"
 	@echo "down     para os serviços do Compose"
@@ -32,3 +34,9 @@ db-delete:
 
 app-key:
 	openssl rand -hex 32
+
+install:
+	cd backend && poetry install
+
+test:
+	cd backend && poetry run pytest
