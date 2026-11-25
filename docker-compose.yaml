@@ -1,4 +1,14 @@
 services:
+  web:
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    image: projeto-final:1.0 
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file:
+      - ./backend/.env
+
   postgres:
     image: postgres:17
     restart: unless-stopped
