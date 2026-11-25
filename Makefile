@@ -1,4 +1,4 @@
-.PHONY: help up db-up down db-down
+.PHONY: help up db-up down db-down db-upgrade
 
 COMPOSE := docker compose
 POETRY := poetry
@@ -8,6 +8,7 @@ help:
 	@echo "db-up    inicia apenas o PostgreSQL"
 	@echo "down     para os serviços do Compose"
 	@echo "db-down  para apenas o PostgreSQL"
+	@echo "db-upgrade aplica as migrations no banco"
 
 up: db-up
 	@cd backend && $(POETRY) run python -m app.main
@@ -20,3 +21,6 @@ down:
 
 db-down:
 	$(COMPOSE) stop postgres
+
+db-upgrade:
+	cd backend && $(POETRY) run alembic upgrade head
