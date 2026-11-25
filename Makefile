@@ -1,12 +1,14 @@
-.PHONY: help up db-up down db-down db-upgrade db-delete app-key install test
+.PHONY: help up build db-up down db-down db-upgrade db-delete app-key install test
 
 COMPOSE := docker compose
 POETRY := poetry
+BUILD := docker build .
 
 help:
 	@echo "install  instala dependencias"
 	@echo "test     executa suite de testes completa"
-	@echo "up       inicia o PostgreSQL e o FastAPI"
+	@echo "up       constrói e inicia todos os serviços do Compose"
+	@echo "build    builda as imagens docker"
 	@echo "db-up    inicia apenas o PostgreSQL"
 	@echo "down     para os serviços do Compose"
 	@echo "db-down  para apenas o PostgreSQL"
@@ -14,8 +16,11 @@ help:
 	@echo "db-delte para o PostgreSQL e deleta seu volume de dados"
 	@echo "app-key  gera uma chave APP_KEY usando OpenSSL (NECESSITA OPENSSL INSTALADO NO HOST)"
 
-up: db-up
-	@cd backend && $(POETRY) run python -m app.main
+up:
+	$(COMPOSE) up -d
+
+build:
+	cd backend && $(BUILD) -t backend:1.0
 
 db-up:
 	$(COMPOSE) up -d postgres
