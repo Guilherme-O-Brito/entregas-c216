@@ -1,8 +1,12 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import CheckConstraint, ForeignKey, SmallInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
-from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.models.user import User
 
 class UserMovie(Base):
     __tablename__ = "user_movies"
