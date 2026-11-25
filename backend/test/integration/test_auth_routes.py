@@ -15,6 +15,7 @@ from app.database.session import get_db
 from app.main import app
 from app.models import User, UserMovie
 
+
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     engine = create_engine(
