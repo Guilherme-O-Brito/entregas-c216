@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: backend_db
+      POSTGRES_USER: backend_user
+      POSTGRES_PASSWORD: test123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
