@@ -31,7 +31,7 @@ class FakeMovieRepository:
             key=lambda movie: movie.id,
         )
         return [
-            {"id": movie.id, "title": movie.title}
+            {"id": movie.id, "title": movie.title, "movie_cover": movie.movie_cover}
             for movie in movies[skip : skip + limit]
         ]
 
@@ -55,6 +55,7 @@ def service(repository: FakeMovieRepository) -> MovieService:
 
 
 def test_create_movie_assigns_owner(service: MovieService) -> None:
+    cover = "https://images.example.com/arrival.jpg"
     movie = service.create(
         7,
         {
@@ -62,12 +63,14 @@ def test_create_movie_assigns_owner(service: MovieService) -> None:
             "status": "assistido",
             "rating": 9,
             "review": "Ótimo filme",
+            "movie_cover": cover,
         },
     )
 
     assert movie.user_id == 7
     assert movie.title == "Arrival"
     assert movie.rating == 9
+    assert movie.movie_cover == cover
 
 
 def test_create_rejects_review_fields_for_watchlist(service: MovieService) -> None:
@@ -86,10 +89,15 @@ def test_create_rejects_review_fields_for_watchlist(service: MovieService) -> No
 def test_list_returns_only_the_requested_users_movies(
     service: MovieService,
 ) -> None:
-    service.create(7, {"title": "Arrival", "status": "assistido"})
+    cover = "https://images.example.com/arrival.jpg"
+    service.create(7, {"title": "Arrival", "status": "assistido", "movie_cover": cover})
     service.create(8, {"title": "Alien", "status": "assistido"})
+    service.create(7, {"title": "Dune", "status": "quero_assistir"})
 
-    assert service.list(7) == [{"id": 1, "title": "Arrival"}]
+    assert service.list(7) == [
+        {"id": 1, "title": "Arrival", "movie_cover": cover},
+        {"id": 3, "title": "Dune", "movie_cover": None},
+    ]
 
 
 def test_get_rejects_a_movie_owned_by_another_user(service: MovieService) -> None:
@@ -100,6 +108,7 @@ def test_get_rejects_a_movie_owned_by_another_user(service: MovieService) -> Non
 
 
 def test_update_changes_only_submitted_fields(service: MovieService) -> None:
+    cover = "https://images.example.com/arrival.jpg"
     movie = service.create(
         7,
         {
@@ -107,6 +116,7 @@ def test_update_changes_only_submitted_fields(service: MovieService) -> None:
             "status": "assistido",
             "rating": 9,
             "review": "Ótimo filme",
+            "movie_cover": cover,
         },
     )
 
@@ -116,6 +126,7 @@ def test_update_changes_only_submitted_fields(service: MovieService) -> None:
     assert updated.status == "assistido"
     assert updated.rating == 9
     assert updated.review == "Ótimo filme"
+    assert updated.movie_cover == cover
 
 
 def test_update_can_move_movie_to_watchlist_after_clearing_review_fields(

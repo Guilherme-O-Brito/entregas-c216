@@ -257,10 +257,17 @@ def test_friends_can_read_each_others_movies_by_status_without_modifying_them(
 ) -> None:
     alice, bob, carol = (accounts[name] for name in ("Alice", "Bob", "Carol"))
     accept_request(client, bob, send_request(client, alice, bob)["id"])
+    cover = "https://images.example.com/arrival.jpg"
     watched = create_movie(
         client,
         bob,
-        {"title": "Arrival", "status": "assistido", "rating": 9, "review": "Ótimo"},
+        {
+            "title": "Arrival",
+            "status": "assistido",
+            "rating": 9,
+            "review": "Ótimo",
+            "movie_cover": cover,
+        },
     )
     watchlist = create_movie(
         client, bob, {"title": "Alien", "status": "quero_assistir"}
@@ -268,6 +275,8 @@ def test_friends_can_read_each_others_movies_by_status_without_modifying_them(
     alice_movie = create_movie(client, alice, {"title": "Dune", "status": "assistido"})
     create_movie(client, carol, {"title": "Blade Runner", "status": "assistido"})
 
+    assert watched["movie_cover"] == cover
+    assert watchlist["movie_cover"] is None
     for viewer, owner, movie in (
         (alice, bob, watched),
         (alice, bob, watchlist),
@@ -282,9 +291,10 @@ def test_friends_can_read_each_others_movies_by_status_without_modifying_them(
         assert response.json() == {"movies": [movie]}
 
     path = f"/movies/{watched['id']}"
-    assert (
-        client.patch(path, headers=alice.headers, json={"rating": 1}).status_code == 404
+    update = client.patch(
+        path, headers=alice.headers, json={"rating": 1, "movie_cover": None}
     )
+    assert update.status_code == 404
     assert client.delete(path, headers=alice.headers).status_code == 404
     assert client.get(path, headers=bob.headers).json() == watched
 

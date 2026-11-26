@@ -1,6 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
+COVER_URL = "https://Images.Example.com/Arrival.jpg?token=AbC%2F123"
+
 
 def register_user(
     client: TestClient,
@@ -53,6 +55,7 @@ def test_create_movie_returns_all_movie_data(client: TestClient) -> None:
             "status": "assistido",
             "rating": 9,
             "review": "Ótimo filme",
+            "movie_cover": COVER_URL,
         },
     )
 
@@ -64,6 +67,7 @@ def test_create_movie_returns_all_movie_data(client: TestClient) -> None:
         "status": "assistido",
         "rating": 9,
         "review": "Ótimo filme",
+        "movie_cover": COVER_URL,
     }
 
 
@@ -77,6 +81,8 @@ def test_create_movie_returns_all_movie_data(client: TestClient) -> None:
         {"title": "Arrival", "status": "invalid"},
         {"title": "Arrival", "status": "assistido", "rating": -1},
         {"title": "Arrival", "status": "assistido", "rating": 11},
+        {"title": "Arrival", "status": "assistido", "movie_cover": "arrival.jpg"},
+        {"title": "Arrival", "status": "assistido", "movie_cover": 123},
         {"title": "Arrival", "status": "quero_assistir", "rating": 8},
         {
             "title": "Arrival",
@@ -116,6 +122,7 @@ def test_get_movie_returns_all_fields_for_owner(client: TestClient) -> None:
             "status": "assistido",
             "rating": 9,
             "review": "Ótimo filme",
+            "movie_cover": COVER_URL,
         },
     )
 
@@ -123,6 +130,7 @@ def test_get_movie_returns_all_fields_for_owner(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == created
+    assert response.json()["movie_cover"] == COVER_URL
 
 
 def test_get_movie_requires_login(client: TestClient) -> None:
@@ -150,6 +158,9 @@ def test_get_movie_returns_404_for_missing_movie(client: TestClient) -> None:
         {"status": "invalid"},
         {"rating": -1},
         {"rating": 11},
+        {"movie_cover": ""},
+        {"movie_cover": "file:///arrival.jpg"},
+        {"movie_cover": 123},
     ],
 )
 def test_patch_movie_rejects_invalid_payload(
@@ -177,6 +188,7 @@ def test_patch_movie_changes_only_sent_fields(client: TestClient) -> None:
             "status": "assistido",
             "rating": 9,
             "review": "Ótimo filme",
+            "movie_cover": COVER_URL,
         },
     )
 
@@ -191,6 +203,27 @@ def test_patch_movie_changes_only_sent_fields(client: TestClient) -> None:
     }
 
 
+def test_patch_movie_updates_cover_without_changing_other_fields(
+    client: TestClient,
+) -> None:
+    register_user(client)
+    headers = authorization_header(client)
+    movie = create_movie(
+        client, headers, {"title": "Arrival", "status": "quero_assistir"}
+    )
+    path = f"/movies/{movie['id']}"
+    assert movie["movie_cover"] is None
+    assert client.get(path, headers=headers).json()["movie_cover"] is None
+
+    for cover in (COVER_URL, "https://images.example.com/new-cover.jpg"):
+        response = client.patch(path, headers=headers, json={"movie_cover": cover})
+
+        assert response.status_code == 200
+        expected = {**movie, "movie_cover": cover}
+        assert response.json() == expected
+        assert client.get(path, headers=headers).json() == expected
+
+
 def test_patch_movie_can_clear_optional_fields(client: TestClient) -> None:
     register_user(client)
     headers = authorization_header(client)
@@ -202,18 +235,22 @@ def test_patch_movie_can_clear_optional_fields(client: TestClient) -> None:
             "status": "assistido",
             "rating": 9,
             "review": "Ótimo filme",
+            "movie_cover": COVER_URL,
         },
     )
 
     response = client.patch(
         f"/movies/{movie['id']}",
         headers=headers,
-        json={"rating": None, "review": None},
+        json={"rating": None, "review": None, "movie_cover": None},
     )
 
     assert response.status_code == 200
     assert response.json()["rating"] is None
     assert response.json()["review"] is None
+    assert response.json()["movie_cover"] is None
+    path = f"/movies/{movie['id']}"
+    assert client.get(path, headers=headers).json()["movie_cover"] is None
 
 
 def test_patch_movie_rejects_inconsistent_watchlist_status(
@@ -259,7 +296,11 @@ def test_index_returns_only_owner_movies_and_only_summary_fields(
 ) -> None:
     register_user(client)
     owner_headers = authorization_header(client)
-    create_movie(client, owner_headers)
+    create_movie(
+        client,
+        owner_headers,
+        {"title": "Arrival", "status": "assistido", "movie_cover": COVER_URL},
+    )
     create_movie(client, owner_headers, {"title": "Alien", "status": "assistido"})
     register_user(client, name="Bob", email="bob@example.com")
     other_headers = authorization_header(client, email="bob@example.com")
@@ -269,7 +310,10 @@ def test_index_returns_only_owner_movies_and_only_summary_fields(
 
     assert response.status_code == 200
     assert response.json() == {
-        "movies": [{"id": 1, "title": "Arrival"}, {"id": 2, "title": "Alien"}]
+        "movies": [
+            {"id": 1, "title": "Arrival", "movie_cover": COVER_URL},
+            {"id": 2, "title": "Alien", "movie_cover": None},
+        ]
     }
     assert other_response.json() == {"movies": []}
 
@@ -289,7 +333,11 @@ def test_index_supports_ten_item_pages(client: TestClient) -> None:
 
     assert len(first_page.json()["movies"]) == 10
     assert len(second_page.json()["movies"]) == 2
-    assert second_page.json()["movies"][0] == {"id": 11, "title": "Movie 11"}
+    assert second_page.json()["movies"][0] == {
+        "id": 11,
+        "title": "Movie 11",
+        "movie_cover": None,
+    }
 
 
 @pytest.mark.parametrize("query", ["skip=-1", "limit=0", "limit=11"])
@@ -344,7 +392,7 @@ def test_another_user_cannot_read_update_or_delete_movie(
     update_response = client.patch(
         f"/movies/{movie['id']}",
         headers=other_headers,
-        json={"title": "Stolen"},
+        json={"title": "Stolen", "movie_cover": COVER_URL},
     )
     delete_response = client.delete(
         f"/movies/{movie['id']}", headers=other_headers
