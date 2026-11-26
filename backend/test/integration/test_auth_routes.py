@@ -1,43 +1,11 @@
-from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.core.config import APP_KEY, JWT_ALGORITHM
 from app.core.security import decode_token
-from app.database.base import Base
-from app.database.session import get_db
-from app.main import app
-from app.models import User, UserMovie
-
-
-@pytest.fixture
-def client() -> Iterator[TestClient]:
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    testing_session_local = sessionmaker(bind=engine, autoflush=False)
-
-    def override_get_db() -> Iterator[Session]:
-        with testing_session_local() as db:
-            yield db
-
-    app.dependency_overrides[get_db] = override_get_db
-    try:
-        with TestClient(app) as test_client:
-            yield test_client
-    finally:
-        app.dependency_overrides.pop(get_db, None)
-        Base.metadata.drop_all(bind=engine)
-        engine.dispose()
 
 
 def register_user(client: TestClient, **overrides: str) -> dict:
