@@ -24,7 +24,7 @@ class MovieRepository:
 
     def get_all(self, user_id: int, skip: int, limit: int) -> list[dict]:
         statement = (
-            select(UserMovie.id, UserMovie.title)
+            select(UserMovie.id, UserMovie.title, UserMovie.movie_cover)
             .where(UserMovie.user_id == user_id)
             .order_by(UserMovie.id)
             .offset(skip)

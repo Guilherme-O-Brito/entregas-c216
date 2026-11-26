@@ -1,8 +1,27 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    AnyHttpUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    TypeAdapter,
+    field_validator,
+    model_validator,
+)
 
 MovieStatus = Literal["quero_assistir", "assistido"]
+
+movie_cover_url = TypeAdapter(AnyHttpUrl)
+
+
+def validate_movie_cover(value: str) -> str:
+    movie_cover_url.validate_python(value)
+    return value
+
+
+MovieCover = Annotated[str, AfterValidator(validate_movie_cover)]
 
 
 class MovieCreate(BaseModel):
@@ -10,6 +29,7 @@ class MovieCreate(BaseModel):
     status: MovieStatus
     rating: int | None = Field(default=None, ge=0, le=10)
     review: str | None = None
+    movie_cover: MovieCover | None = None
 
     @field_validator("title")
     @classmethod
@@ -35,6 +55,7 @@ class MoviePatch(BaseModel):
     status: MovieStatus | None = None
     rating: int | None = Field(default=None, ge=0, le=10)
     review: str | None = None
+    movie_cover: MovieCover | None = None
 
     @field_validator("title", "status", mode="before")
     @classmethod
@@ -63,11 +84,13 @@ class MovieResponse(BaseModel):
     status: MovieStatus
     rating: int | None
     review: str | None
+    movie_cover: str | None
 
 
 class MovieSummary(BaseModel):
     id: int
     title: str
+    movie_cover: str | None
 
 
 class MovieListResponse(BaseModel):

@@ -32,5 +32,6 @@ class UserMovie(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     rating: Mapped[int | None] = mapped_column(SmallInteger)
     review: Mapped[str | None] = mapped_column(Text)
+    movie_cover: Mapped[str | None] = mapped_column(Text)
 
     user: Mapped["User"] = relationship(back_populates="movies")
