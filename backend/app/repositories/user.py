@@ -25,3 +25,10 @@ class UserRepository:
 
     def get_by_email(self, email: str) -> User | None:
         return self.db.scalar(select(User).where(User.email == email))
+
+    def get_all(self, name: str | None, skip: int, limit: int) -> list[dict]:
+        statement = select(User.id, User.name)
+        if name is not None:
+            statement = statement.where(User.name.icontains(name, autoescape=True))
+        statement = statement.order_by(User.id).offset(skip).limit(limit)
+        return [dict(row) for row in self.db.execute(statement).mappings()]

@@ -72,3 +72,7 @@ class MovieSummary(BaseModel):
 
 class MovieListResponse(BaseModel):
     movies: list[MovieSummary]
+
+
+class MovieDetailsListResponse(BaseModel):
+    movies: list[MovieResponse]

@@ -32,6 +32,18 @@ class MovieRepository:
         )
         return [dict(row._mapping) for row in self.db.execute(statement)]
 
+    def get_all_by_status(
+        self, user_id: int, status: str, skip: int, limit: int
+    ) -> list[UserMovie]:
+        statement = (
+            select(UserMovie)
+            .where(UserMovie.user_id == user_id, UserMovie.status == status)
+            .order_by(UserMovie.id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return list(self.db.scalars(statement))
+
     def update(self, movie: UserMovie, changes: dict) -> UserMovie:
         if not changes:
             return movie
