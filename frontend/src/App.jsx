@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { AuthForm } from "./components/AuthForm";
 import { useSession } from "./hooks/useSession";
+import { MoviesPage } from "./pages/MoviesPage";
 import { login, register } from "./services/auth";
-import { startSession } from "./services/session";
+import { endSession, startSession } from "./services/session";
 
 export default function App() {
   const [mode, setMode] = useState("login");
@@ -31,8 +32,14 @@ export default function App() {
     setMode(mode === "login" ? "register" : "login");
   }
 
+  function handleLogout() {
+    setMode("login");
+    setRegisteredEmail("");
+    endSession();
+  }
+
   if (session) {
-    return <main className="min-h-screen bg-slate-50" />;
+    return <MoviesPage onLogout={handleLogout} />;
   }
 
   const registering = mode === "register";

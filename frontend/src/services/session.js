@@ -46,6 +46,10 @@ export function startSession(tokens) {
   });
 }
 
+export function endSession() {
+  setSession(null);
+}
+
 export function getSession() {
   return session;
 }
@@ -88,7 +92,7 @@ export async function refreshSession(previous) {
       return renewed;
     })
     .catch((error) => {
-      if (error.status === 401 && session === previous) setSession(null);
+      if (error.status === 401 && session === previous) endSession();
       throw error;
     })
     .finally(() => {
