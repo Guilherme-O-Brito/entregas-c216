@@ -12,7 +12,7 @@ help:
 	@echo "db-up    inicia apenas o PostgreSQL"
 	@echo "down     para os serviços do Compose"
 	@echo "db-down  para apenas o PostgreSQL"
-	@echo "db-upgrade aplica as migrations no banco"
+	@echo "db-upgrade aplica as migrations no banco (o container web deve estar iniciado)"
 	@echo "db-delte para o PostgreSQL e deleta seu volume de dados"
 	@echo "app-key  gera uma chave APP_KEY usando OpenSSL (NECESSITA OPENSSL INSTALADO NO HOST)"
 
@@ -32,7 +32,7 @@ db-down:
 	$(COMPOSE) stop postgres
 
 db-upgrade:
-	cd backend && $(POETRY) run alembic upgrade head
+	$(COMPOSE) exec web poetry run alembic upgrade head
 
 db-delete:
 	$(COMPOSE) down postgres -v
