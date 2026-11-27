@@ -101,6 +101,10 @@ export function MoviesPage({ onLogout }) {
         movieId={movieId}
         onBack={() => goBack(MOVIES_PATH)}
         onSaved={reloadMovies}
+        onDeleted={() => {
+          reloadMovies();
+          if (window.location.pathname === path) goBack(MOVIES_PATH);
+        }}
       />
     );
   }

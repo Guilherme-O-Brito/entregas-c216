@@ -38,6 +38,19 @@ export function updateMovie(movieId, changes) {
   return saveMovie(`/movies/${movieId}`, "PATCH", changes);
 }
 
+export async function deleteMovie(movieId) {
+  const fallback = "Não foi possível excluir o filme.";
+  let response;
+  try {
+    response = await authenticatedFetch(`/movies/${movieId}`, {
+      method: "DELETE",
+    });
+  } catch {
+    throw new Error(fallback);
+  }
+  if (!response.ok) await readMoviesResponse(response, fallback);
+}
+
 async function withStatus(movie, signal) {
   const response = await authenticatedFetch(`/movies/${movie.id}`, { signal });
   if (response.status === 404) return null;

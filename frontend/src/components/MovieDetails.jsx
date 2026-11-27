@@ -8,6 +8,7 @@ export function MovieDetails({
   onBack,
   onRetry,
   onEdit,
+  onDelete,
   children,
 }) {
   return (
@@ -15,14 +16,27 @@ export function MovieDetails({
       <section className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-center justify-between gap-4">
           <BackButton onBack={onBack} />
-          {movie && onEdit && (
-            <button
-              type="button"
-              onClick={onEdit}
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Editar
-            </button>
+          {movie && (
+            <div className="flex gap-3">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Editar
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="rounded bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800"
+                >
+                  Excluir filme
+                </button>
+              )}
+            </div>
           )}
         </header>
         {error ? (
