@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AddFriendDialog } from "../components/AddFriendDialog";
 import { BackButton } from "../components/BackButton";
 import { listFriends, removeFriend } from "../services/friends";
 import { FriendMoviesPage } from "./FriendMoviesPage";
@@ -12,6 +13,7 @@ export function FriendsPage({
   onBackToFriendMovies,
 }) {
   const [list, setList] = useState({ friends: null, error: "" });
+  const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState(null);
   const [removeError, setRemoveError] = useState("");
 
@@ -75,8 +77,8 @@ export function FriendsPage({
           {!friendId && (
             <button
               type="button"
-              disabled
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              onClick={() => setAdding(true)}
+              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
             >
               Adicionar amigo
             </button>
@@ -87,6 +89,12 @@ export function FriendsPage({
           <p role="alert" className="text-sm text-red-700">
             {removeError}
           </p>
+        )}
+        {!friendId && adding && (
+          <AddFriendDialog
+            friends={list.friends ?? []}
+            onClose={() => setAdding(false)}
+          />
         )}
         {list.error ? (
           <div className="space-y-2">

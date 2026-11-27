@@ -35,6 +35,18 @@ export function removeFriend(friendId) {
   );
 }
 
+export function sendFriendRequest(userId) {
+  return request(
+    "/friendships/",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userId }),
+    },
+    "Não foi possível enviar o pedido de amizade.",
+  );
+}
+
 export async function listFriendMovies(friendId, status, signal) {
   const movies = [];
   for (let skip = 0; ; skip += PAGE_SIZE) {

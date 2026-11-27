@@ -1,21 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { Modal } from "./Modal";
 
 const inputClass = "w-full rounded border border-slate-300 px-3 py-2";
 
 export function MovieFormDialog({ movie, initialStatus, onClose, onSave }) {
-  const dialogRef = useRef(null);
   const [status, setStatus] = useState(
     movie?.status ?? initialStatus ?? "quero_assistir",
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const watched = status === "assistido";
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog.showModal();
-    return () => dialog.close();
-  }, []);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -80,18 +74,11 @@ export function MovieFormDialog({ movie, initialStatus, onClose, onSave }) {
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      aria-labelledby="movie-form-heading"
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!saving) onClose();
-      }}
-      className="m-auto max-h-screen w-full max-w-lg space-y-5 overflow-y-auto rounded-lg border border-slate-200 bg-white p-6 text-slate-900 shadow-sm backdrop:bg-slate-900/40"
+    <Modal
+      title={movie ? "Editar filme" : "Novo filme"}
+      onClose={onClose}
+      canClose={!saving}
     >
-      <h2 id="movie-form-heading" className="text-xl font-bold">
-        {movie ? "Editar filme" : "Novo filme"}
-      </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1">
           <label htmlFor="movie-title" className="block text-sm font-medium">
@@ -193,6 +180,6 @@ export function MovieFormDialog({ movie, initialStatus, onClose, onSave }) {
           </button>
         </div>
       </form>
-    </dialog>
+    </Modal>
   );
 }
