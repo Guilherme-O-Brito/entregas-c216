@@ -53,6 +53,7 @@ def create_movie(client: TestClient, owner: Account, payload: dict) -> dict:
         ("GET", "/friendships/requests", None),
         ("PATCH", "/friendships/requests/1/accept", None),
         ("DELETE", "/friendships/requests/1", None),
+        ("DELETE", "/friendships/2", None),
         ("GET", "/friendships/", None),
         ("GET", "/friendships/2/movies?status=assistido", None),
         ("GET", "/users/", None),
@@ -204,6 +205,51 @@ def test_remove_pending_request_allows_a_new_request(
         "requests": []
     }
     assert send_request(client, alice, bob)["status"] == "pending"
+
+
+@pytest.mark.parametrize("actor", ["Alice", "Bob"])
+def test_removing_friend_revokes_access_in_both_directions(
+    client: TestClient, accounts: dict[str, Account], actor: str
+) -> None:
+    alice, bob, carol = (accounts[name] for name in ("Alice", "Bob", "Carol"))
+    request = send_request(client, alice, bob)
+    accept_request(client, bob, request["id"])
+    sender = accounts[actor]
+    other = bob if sender == alice else alice
+    unauthorized = client.delete(f"/friendships/{bob.id}", headers=carol.headers)
+    assert unauthorized.status_code == 404
+    visible = client.get(
+        f"/friendships/{other.id}/movies?status=assistido", headers=sender.headers
+    )
+    assert visible.status_code == 200
+
+    response = client.delete(f"/friendships/{other.id}", headers=sender.headers)
+
+    assert response.status_code == 204
+    assert response.content == b""
+    for viewer, friend in ((alice, bob), (bob, alice)):
+        friends = client.get("/friendships/", headers=viewer.headers)
+        assert friends.status_code == 200
+        assert friends.json() == {"friends": []}
+        movies = client.get(
+            f"/friendships/{friend.id}/movies?status=assistido", headers=viewer.headers
+        )
+        assert movies.status_code == 404
+    repeated = client.delete(f"/friendships/{other.id}", headers=sender.headers)
+    assert repeated.status_code == 404
+    assert send_request(client, alice, bob)["status"] == "pending"
+
+
+def test_remove_friend_preserves_pending_requests(
+    client: TestClient, accounts: dict[str, Account]
+) -> None:
+    alice, bob = accounts["Alice"], accounts["Bob"]
+    request = send_request(client, alice, bob)
+
+    for viewer, other in ((alice, bob), (bob, alice)):
+        response = client.delete(f"/friendships/{other.id}", headers=viewer.headers)
+        assert response.status_code == 404
+    assert accept_request(client, bob, request["id"])["status"] == "accepted"
 
 
 def test_friend_movies_require_an_accepted_friendship(

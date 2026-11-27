@@ -20,6 +20,7 @@ class FakeFriendshipRepository:
         self.friendship: Friendship | None = None
         self.accept_result: Friendship | None = None
         self.delete_result = False
+        self.delete_friend_result = False
         self.requests = [{"id": 4, "requested_by_id": 1, "requested_by_name": "Alice"}]
         self.friends = [{"id": 1, "name": "Alice"}]
 
@@ -56,6 +57,10 @@ class FakeFriendshipRepository:
     def delete_pending_request(self, user_id: int, request_id: int) -> bool:
         self.delete_request_call = (user_id, request_id)
         return self.delete_result
+
+    def delete_accepted_friendship(self, user_low_id: int, user_high_id: int) -> bool:
+        self.delete_friend_call = (user_low_id, user_high_id)
+        return self.delete_friend_result
 
     def get_received_requests(self, user_id: int) -> list[dict]:
         self.received_requests_user_id = user_id
@@ -179,6 +184,21 @@ def test_list_friends_uses_current_user(
 ) -> None:
     assert service.list_friends(2) == repository.friends
     assert repository.friends_user_id == 2
+
+
+def test_remove_friend_uses_the_pair_in_ascending_order(
+    service: FriendshipService, repository: FakeFriendshipRepository
+) -> None:
+    repository.delete_friend_result = True
+
+    service.remove_friend(2, 1)
+
+    assert repository.delete_friend_call == (1, 2)
+
+
+def test_remove_friend_rejects_missing_friendship(service: FriendshipService) -> None:
+    with pytest.raises(FriendNotFoundError):
+        service.remove_friend(1, 2)
 
 
 @pytest.mark.parametrize("pending", [False, True], ids=["missing", "pending"])
