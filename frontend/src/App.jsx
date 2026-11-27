@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthForm } from "./components/AuthForm";
 import { useSession } from "./hooks/useSession";
+import { MOVIES_PATH, movieIdFromPath } from "./moviePaths";
 import { MoviesPage } from "./pages/MoviesPage";
 import { login, register } from "./services/auth";
 import { endSession, startSession } from "./services/session";
@@ -11,10 +12,17 @@ export default function App() {
   const [registeredEmail, setRegisteredEmail] = useState("");
 
   useEffect(() => {
-    const path = session ? "/inicio" : "/";
-    if (window.location.pathname !== path) {
-      window.history.replaceState(null, "", path);
+    function syncPath() {
+      const current = window.location.pathname;
+      const path = session ? MOVIES_PATH : "/";
+      if (current !== path && (!session || !movieIdFromPath(current))) {
+        window.history.replaceState(null, "", path);
+      }
     }
+
+    syncPath();
+    window.addEventListener("popstate", syncPath);
+    return () => window.removeEventListener("popstate", syncPath);
   }, [session]);
 
   async function handleLogin(values) {
