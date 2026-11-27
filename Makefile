@@ -29,7 +29,7 @@ up:
 
 build:
 	cd backend && $(BUILD) -t backend:1.0
-	cd backend && $(BUILD) -t frontend:1.0
+	cd frontend && $(BUILD) -t frontend:1.0
 
 db-up:
 	$(COMPOSE) up -d postgres
