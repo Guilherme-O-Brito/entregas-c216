@@ -43,8 +43,6 @@ O banco de dados usado é o `PostgresSQL` como citado acima, a estrutura do banc
 ### Frontend
 - `src/pages`, `components`, `hooks` e `services`: telas, componentes, estado e comunicação com a API.
 - `tests`: testes unitários, de integração e E2E.
-
-Outros comandos úteis: `make help`, `make build`, `make db-up`, `make db-down`, `make db-delete`, `make test`, `make test-backend`, `make test-front`, `make test-e2e`, `make lint-backend`, `make lint-front`, `make format-check-front`, `make check-front` e `make check-all`.
 ## Pré-requisitos
 Para executar o projeto é necessario principalmente ter o `Docker` instaldo na maquina, para executar localmente sem docker é necessario ter o `python 3.14`, `poetry` e `node 24` instalados e instalar as dependencias do projeto rodando `make install`.
 ## Variáveis de ambiente
@@ -66,7 +64,9 @@ make up            # inicia os serviços com Docker Compose
 make db-upgrade    # aplica as migrations (com o serviço web iniciado)
 make down          # para os serviços
 ```
-Uma vez o projeto executado com `make up` como acima basta acessar `http://localhost:5173` se voce não tiver trocado as portas no `docker-compose.yaml`
+Uma vez o projeto executado com `make up` como acima basta acessar `http://localhost:5173` se voce não tiver trocado as portas no `docker-compose.yaml`.
+
+Outros comandos úteis: `make help`, `make build`, `make db-up`, `make db-down`, `make db-delete`, `make test`, `make test-backend`, `make test-front`, `make test-e2e`, `make lint-backend`, `make lint-front`, `make format-check-front`, `make check-front` e `make check-all`.
 ## Migrações
 - **Usuários e filmes:** cria as tabelas `users` e `user_movies`, com status, nota e resenha.
 - **Amizades:** cria `friendships` para solicitações e conexões aceitas entre usuários.
