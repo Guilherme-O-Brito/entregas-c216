@@ -27,6 +27,7 @@ from app.services.user import UserNotFoundError
 friendships_router = APIRouter(prefix="/friendships", tags=["friendships"])
 
 REQUEST_NOT_FOUND = "Pedido de amizade não encontrado."
+FRIEND_NOT_FOUND = "Amigo não encontrado."
 
 
 def get_friendship_service(
@@ -99,6 +100,17 @@ def index_friends(user: CurrentUserDep, service: ServiceDep):
     return {"friends": service.list_friends(user.id)}
 
 
+@friendships_router.delete("/{friend_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_friendship(
+    friend_id: Annotated[int, Path(gt=0)], user: CurrentUserDep, service: ServiceDep
+):
+    try:
+        service.remove_friend(user.id, friend_id)
+    except FriendNotFoundError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, FRIEND_NOT_FOUND) from None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @friendships_router.get(
     "/{friend_id}/movies", response_model=MovieDetailsListResponse
 )
@@ -117,6 +129,4 @@ def index_friend_movies(
             )
         }
     except FriendNotFoundError:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, "Amigo não encontrado."
-        ) from None
+        raise HTTPException(status.HTTP_404_NOT_FOUND, FRIEND_NOT_FOUND) from None

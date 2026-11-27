@@ -68,6 +68,11 @@ class FriendshipService:
     def list_friends(self, user_id: int) -> list[dict]:
         return self.repository.get_friends(user_id)
 
+    def remove_friend(self, user_id: int, friend_id: int) -> None:
+        low_id, high_id = sorted((user_id, friend_id))
+        if not self.repository.delete_accepted_friendship(low_id, high_id):
+            raise FriendNotFoundError
+
     def list_friend_movies(
         self, user_id: int, friend_id: int, status: MovieStatus, skip: int, limit: int
     ) -> list[UserMovie]:

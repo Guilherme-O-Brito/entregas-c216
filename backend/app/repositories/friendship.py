@@ -101,3 +101,18 @@ class FriendshipRepository:
             .order_by(User.id)
         )
         return [dict(row) for row in self.db.execute(statement).mappings()]
+
+    def delete_accepted_friendship(self, user_low_id: int, user_high_id: int) -> bool:
+        statement = (
+            delete(Friendship)
+            .where(
+                Friendship.user_low_id == user_low_id,
+                Friendship.user_high_id == user_high_id,
+                Friendship.status == "accepted",
+            )
+            .returning(Friendship.id)
+        )
+        deleted_id = self.db.scalar(statement)
+        if deleted_id is not None:
+            self.db.commit()
+        return deleted_id is not None
