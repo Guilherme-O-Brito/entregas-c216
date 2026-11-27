@@ -3,6 +3,7 @@ import {
   listFriendMovies,
   listFriends,
   removeFriend,
+  sendFriendRequest,
 } from "../../src/services/friends";
 import { authenticatedFetch } from "../../src/services/session";
 import { jsonResponse } from "../helpers/auth";
@@ -76,4 +77,17 @@ it("informa a falha ao remover um amigo", async () => {
   await expect(removeFriend(2)).rejects.toThrow(
     "Não foi possível remover o amigo.",
   );
+});
+
+it("envia o pedido pela rota de amizade com o ID do destinatário", async () => {
+  vi.mocked(authenticatedFetch).mockResolvedValueOnce(
+    jsonResponse({ id: 1 }, 201),
+  );
+
+  await expect(sendFriendRequest(2)).resolves.toEqual({ id: 1 });
+  expect(authenticatedFetch).toHaveBeenCalledExactlyOnceWith("/friendships/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: 2 }),
+  });
 });

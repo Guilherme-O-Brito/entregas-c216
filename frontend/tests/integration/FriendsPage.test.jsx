@@ -76,9 +76,7 @@ it("abre os filmes de um amigo por status e preserva a aba do usuário ao voltar
 
   expect(window.location.pathname).toBe("/inicio/amigos");
   expect(screen.getByRole("heading", { name: "Amigos" })).toBeVisible();
-  expect(
-    screen.getByRole("button", { name: "Adicionar amigo" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Adicionar amigo" })).toBeEnabled();
   expect(await screen.findByRole("button", { name: "Bruno" })).toBeVisible();
   const ana = screen.getByRole("button", { name: "Ana" });
   expect(
@@ -173,7 +171,7 @@ it("mantém o amigo na lista se a API rejeitar a remoção", async () => {
   expect(screen.getByRole("button", { name: "Remover amigo" })).toBeEnabled();
 });
 
-it("mostra a lista vazia e mantém o botão de adicionar desabilitado", async () => {
+it("permite adicionar amigos mesmo quando a lista está vazia", async () => {
   window.history.replaceState(null, "", "/inicio/amigos");
   mockFriendsApi([]);
   await renderApp();
@@ -181,9 +179,7 @@ it("mostra a lista vazia e mantém o botão de adicionar desabilitado", async ()
   expect(
     await screen.findByText("Você ainda não tem amigos cadastrados."),
   ).toBeVisible();
-  expect(
-    screen.getByRole("button", { name: "Adicionar amigo" }),
-  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Adicionar amigo" })).toBeEnabled();
 });
 
 it("resolve o nome do amigo quando os filmes são abertos por link direto", async () => {

@@ -1,9 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
-test("abre os detalhes do filme do amigo e remove a amizade", async ({
-  page,
-}) => {
+async function signIn(page) {
   const password = "secret123";
   await page.goto("/");
   await page.getByRole("button", { name: "Criar uma conta" }).click();
@@ -34,6 +32,13 @@ test("abre os detalhes do filme do amigo e remove a amizade", async ({
     return response.json();
   }
 
+  return { password, ownerToken, send };
+}
+
+test("abre os detalhes do filme do amigo e remove a amizade", async ({
+  page,
+}) => {
+  const { password, ownerToken, send } = await signIn(page);
   const email = `e2e-${randomUUID()}@example.com`;
   const friend = await send("/auth/register", "POST", {
     name: "Ana",
@@ -74,7 +79,7 @@ test("abre os detalhes do filme do amigo e remove a amizade", async ({
   await expect(page).toHaveURL(/\/inicio\/amigos$/);
   await expect(
     page.getByRole("button", { name: "Adicionar amigo" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   const card = page.getByRole("listitem").filter({ hasText: "Ana" });
   await expect(
     card.getByRole("button", { name: "Remover amigo" }),
@@ -130,4 +135,67 @@ test("abre os detalhes do filme do amigo e remove a amizade", async ({
     page.getByRole("heading", { name: "Meus filmes" }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/inicio$/);
+});
+
+test("pesquisa usuários, navega pelas páginas e envia um pedido pelo modal", async ({
+  page,
+}) => {
+  const { password, ownerToken, send } = await signIn(page);
+  const prefix = `Catálogo ${randomUUID().slice(0, 8)}`;
+  const users = [];
+  for (let index = 1; index <= 11; index += 1) {
+    const name = `${prefix} ${String(index).padStart(2, "0")}`;
+    const email = `e2e-${randomUUID()}@example.com`;
+    const user = await send("/auth/register", "POST", {
+      name,
+      email,
+      password,
+    });
+    users.push(user);
+  }
+
+  await page.getByRole("button", { name: "Amigos" }).click();
+  await page.getByRole("button", { name: "Adicionar amigo" }).click();
+  const dialog = page.getByRole("dialog", { name: "Adicionar amigos" });
+  const search = dialog.getByRole("searchbox", { name: "Buscar por nome" });
+  await search.fill(prefix);
+  await expect(dialog.getByRole("listitem")).toHaveCount(10);
+  await expect(dialog.getByText("Página 1")).toBeVisible();
+  await dialog.getByRole("button", { name: "Próxima" }).click();
+  await expect(dialog.getByText("Página 2")).toBeVisible();
+  await expect(dialog.getByRole("listitem")).toHaveCount(1);
+  await expect(dialog.getByRole("button", { name: "Próxima" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "Anterior" }).click();
+  await expect(dialog.getByRole("listitem")).toHaveCount(10);
+
+  const target = users[10];
+  await search.fill(target.name);
+  const add = dialog.getByRole("button", { name: `Adicionar ${target.name}` });
+  await expect(add).toBeVisible();
+  await expect(dialog.getByRole("listitem")).toHaveCount(1);
+  await add.click();
+  await expect(dialog.getByRole("status")).toHaveText(
+    `Pedido enviado para ${target.name}.`,
+  );
+  await expect(add).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Fechar" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText("Você ainda não tem amigos cadastrados."),
+  ).toBeVisible();
+
+  const { access_token: targetToken } = await send("/auth/login", "POST", {
+    email: target.email,
+    password,
+  });
+  const { requests } = await send(
+    "/friendships/requests",
+    "GET",
+    undefined,
+    targetToken,
+  );
+  const owner = await send("/auth/me", "GET", undefined, ownerToken);
+  expect(requests).toEqual([
+    expect.objectContaining({ requested_by_id: owner.id }),
+  ]);
 });
