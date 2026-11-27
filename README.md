@@ -1,6 +1,7 @@
 # entregas-c216
 ## objetivo e tema
 O projeto se trata de uma especie de "rede social" para compartilhar opiniões sobre filmes que voce viu com seus amigos e poder cadastrar filmes que voce não viu mas ainda quer ver, podendo tambem ver quais filmes e analises seus amigos viram/fizeram e tambem quais eles quere ver.
+Link do video: `https://youtu.be/a5rwpfxjQIA`
 ## Funcionalidades
 - Login e cadastro de usuario
 - Adicionar e remover amigos
