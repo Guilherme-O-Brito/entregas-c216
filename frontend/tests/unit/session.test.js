@@ -51,6 +51,43 @@ it("exige os dois tokens antes de gravar uma sessão", async () => {
   expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
 });
 
+it("encerra a sessão local sem enviar uma requisição", async () => {
+  const { authenticatedFetch, endSession, getSession, startSession } =
+    await import("../../src/services/session");
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+  startSession(tokens());
+
+  endSession();
+
+  expect(getSession()).toBeNull();
+  expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+  await expect(authenticatedFetch("/movies/")).rejects.toThrow(
+    "A sessão não está disponível.",
+  );
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it("ignora uma renovação que termina depois que o usuário sai", async () => {
+  const { endSession, getSession, refreshSession, startSession } = await import(
+    "../../src/services/session"
+  );
+  const request = Promise.withResolvers();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => request.promise),
+  );
+  startSession(tokens(1));
+  const refresh = refreshSession(getSession());
+
+  endSession();
+  request.resolve(jsonResponse({ access_token: tokens().access_token }));
+
+  await expect(refresh).rejects.toThrow("Não foi possível renovar a sessão.");
+  expect(getSession()).toBeNull();
+  expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+});
+
 it("renova uma única vez quando há chamadas de refresh simultâneas", async () => {
   const { getSession, refreshSession, startSession } = await import(
     "../../src/services/session"
