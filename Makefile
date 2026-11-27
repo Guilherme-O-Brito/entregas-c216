@@ -68,7 +68,7 @@ test-e2e:
 	cd frontend && npm run test:e2e
 
 lint-backend:
-	cd backend && poetry run ruff check .
+	cd backend && poetry run ruff format --check .
 
 lint-front:
 	cd frontend && npm run lint
