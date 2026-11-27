@@ -1,5 +1,9 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { listFriendMovies, listFriends } from "../../src/services/friends";
+import {
+  listFriendMovies,
+  listFriends,
+  removeFriend,
+} from "../../src/services/friends";
 import { authenticatedFetch } from "../../src/services/session";
 import { jsonResponse } from "../helpers/auth";
 
@@ -52,5 +56,24 @@ it("propaga a mensagem da API quando o amigo não pode ser consultado", async ()
 
   await expect(listFriendMovies(2, "quero_assistir")).rejects.toThrow(
     "Amigo não encontrado.",
+  );
+});
+
+it("remove a amizade pelo ID do amigo e aceita uma resposta vazia", async () => {
+  vi.mocked(authenticatedFetch).mockResolvedValueOnce(
+    new Response(null, { status: 204 }),
+  );
+
+  await expect(removeFriend(2)).resolves.toBeNull();
+  expect(authenticatedFetch).toHaveBeenCalledExactlyOnceWith("/friendships/2", {
+    method: "DELETE",
+  });
+});
+
+it("informa a falha ao remover um amigo", async () => {
+  vi.mocked(authenticatedFetch).mockRejectedValueOnce(new Error("offline"));
+
+  await expect(removeFriend(2)).rejects.toThrow(
+    "Não foi possível remover o amigo.",
   );
 });

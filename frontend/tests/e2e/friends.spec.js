@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
-test("lista amigos aceitos e abre os filmes deles com os dois filtros", async ({
+test("abre os detalhes do filme do amigo e remove a amizade", async ({
   page,
 }) => {
   const password = "secret123";
@@ -58,7 +58,7 @@ test("lista amigos aceitos e abre os filmes deles com os dois filtros", async ({
   );
   for (const movie of [
     { title: "Arrival", status: "quero_assistir" },
-    { title: "Alien", status: "assistido" },
+    { title: "Alien", status: "assistido", rating: 9, review: "Ótimo filme." },
   ]) {
     await send("/movies/", "POST", movie, friendToken);
   }
@@ -78,7 +78,7 @@ test("lista amigos aceitos e abre os filmes deles com os dois filtros", async ({
   const card = page.getByRole("listitem").filter({ hasText: "Ana" });
   await expect(
     card.getByRole("button", { name: "Remover amigo" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(page.getByText("Pedido pendente")).toHaveCount(0);
   await card.getByRole("button", { name: "Ana" }).click();
 
@@ -92,10 +92,37 @@ test("lista amigos aceitos e abre os filmes deles com os dois filtros", async ({
   await expect(page.getByText("Alien")).toBeVisible();
   await expect(page.getByText("Arrival")).toHaveCount(0);
 
+  await page.getByRole("button", { name: "Alien" }).click();
+  await expect(page).toHaveURL(
+    /\/inicio\/amigos\/\d+\/filmes\/assistido\/\d+$/,
+  );
+  const detailsPath = new URL(page.url()).pathname;
+  await expect(page.getByRole("heading", { name: "Alien" })).toBeVisible();
+  await expect(page.getByText("Filme de Ana")).toBeVisible();
+  await expect(page.getByText("9/10")).toBeVisible();
+  await expect(page.getByText("Ótimo filme.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Editar" })).toHaveCount(0);
+
   await page.reload();
+  await expect(page.getByRole("heading", { name: "Alien" })).toBeVisible();
+  await page.getByRole("button", { name: "Voltar" }).click();
   await expect(
     page.getByRole("heading", { name: "Filmes de Ana" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Já assistidos" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Voltar" }).click();
+  await expect(page.getByRole("heading", { name: "Amigos" })).toBeVisible();
+  await card.getByRole("button", { name: "Remover amigo" }).click();
+  await expect(card).toHaveCount(0);
+  await expect(
+    page.getByText("Você ainda não tem amigos cadastrados."),
+  ).toBeVisible();
+
+  await page.goto(detailsPath);
+  await expect(page.getByRole("alert")).toHaveText("Amigo não encontrado.");
+  await expect(page.getByRole("heading", { name: "Alien" })).toHaveCount(0);
   await page.getByRole("button", { name: "Voltar" }).click();
   await expect(page.getByRole("heading", { name: "Amigos" })).toBeVisible();
   await page.getByRole("button", { name: "Voltar" }).click();
