@@ -38,7 +38,7 @@ jobs:
         run: poetry install --no-root
 
       - name: Run Ruff
-        run: poetry run ruff check .
+        run: poetry run ruff format --check .
 
       - name: Run Tests
         run: poetry run pytest
