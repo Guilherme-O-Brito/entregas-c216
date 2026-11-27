@@ -12,7 +12,7 @@ on:
 
 jobs:
   frontend:
-    name: Biome, Vitest, Build e Playwright
+    name: Biome, Vitest, Build
     runs-on: ubuntu-latest
     defaults:
       run:
