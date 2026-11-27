@@ -44,9 +44,7 @@ class MovieCreate(BaseModel):
         if self.status == "quero_assistir" and (
             self.rating is not None or self.review is not None
         ):
-            raise ValueError(
-                "Filmes em 'quero_assistir' não podem ter nota ou review."
-            )
+            raise ValueError("Filmes em 'quero_assistir' não podem ter nota ou review.")
         return self
 
 

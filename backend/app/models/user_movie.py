@@ -8,6 +8,7 @@ from app.database.base import Base
 if TYPE_CHECKING:
     from app.models.user import User
 
+
 class UserMovie(Base):
     __tablename__ = "user_movies"
     __table_args__ = (

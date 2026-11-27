@@ -10,9 +10,7 @@ class Friendship(Base):
         UniqueConstraint(
             "user_low_id", "user_high_id", name="uq_friendships_user_pair"
         ),
-        CheckConstraint(
-            "user_low_id < user_high_id", name="ck_friendships_user_order"
-        ),
+        CheckConstraint("user_low_id < user_high_id", name="ck_friendships_user_order"),
         CheckConstraint(
             "requested_by_id IN (user_low_id, user_high_id)",
             name="ck_friendships_requester",

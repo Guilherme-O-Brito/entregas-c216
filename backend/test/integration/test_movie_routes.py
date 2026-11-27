@@ -104,9 +104,7 @@ def test_create_movie_rejects_invalid_payload(
 
 
 def test_create_movie_requires_login(client: TestClient) -> None:
-    response = client.post(
-        "/movies/", json={"title": "Arrival", "status": "assistido"}
-    )
+    response = client.post("/movies/", json={"title": "Arrival", "status": "assistido"})
 
     assert response.status_code == 401
 
@@ -163,16 +161,12 @@ def test_get_movie_returns_404_for_missing_movie(client: TestClient) -> None:
         {"movie_cover": 123},
     ],
 )
-def test_patch_movie_rejects_invalid_payload(
-    client: TestClient, payload: dict
-) -> None:
+def test_patch_movie_rejects_invalid_payload(client: TestClient, payload: dict) -> None:
     register_user(client)
     headers = authorization_header(client)
     movie = create_movie(client, headers)
 
-    response = client.patch(
-        f"/movies/{movie['id']}", headers=headers, json=payload
-    )
+    response = client.patch(f"/movies/{movie['id']}", headers=headers, json=payload)
 
     assert response.status_code == 422
 
@@ -394,9 +388,7 @@ def test_another_user_cannot_read_update_or_delete_movie(
         headers=other_headers,
         json={"title": "Stolen", "movie_cover": COVER_URL},
     )
-    delete_response = client.delete(
-        f"/movies/{movie['id']}", headers=other_headers
-    )
+    delete_response = client.delete(f"/movies/{movie['id']}", headers=other_headers)
 
     assert read_response.status_code == 404
     assert update_response.status_code == 404

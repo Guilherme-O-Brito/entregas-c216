@@ -74,9 +74,7 @@ def test_register_rejects_duplicate_email(client: TestClient) -> None:
         {"name": "Alice", "email": "alice@example.com", "password": "short"},
     ],
 )
-def test_register_rejects_invalid_payload(
-    client: TestClient, payload: dict
-) -> None:
+def test_register_rejects_invalid_payload(client: TestClient, payload: dict) -> None:
     assert client.post("/auth/register", json=payload).status_code == 422
 
 
@@ -172,8 +170,6 @@ def test_refresh_rejects_expired_refresh_token(client: TestClient) -> None:
         algorithm=JWT_ALGORITHM,
     )
 
-    response = client.post(
-        "/auth/refresh", json={"refresh_token": expired_token}
-    )
+    response = client.post("/auth/refresh", json={"refresh_token": expired_token})
 
     assert response.status_code == 401

@@ -36,9 +36,7 @@ def get_auth_service(db: Annotated[Session, Depends(get_db)]) -> AuthService:
 
 
 ServiceDep = Annotated[AuthService, Depends(get_auth_service)]
-CredentialsDep = Annotated[
-    HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
-]
+CredentialsDep = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
 
 
 def get_current_user(

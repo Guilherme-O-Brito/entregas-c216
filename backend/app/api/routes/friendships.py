@@ -111,9 +111,7 @@ def remove_friendship(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@friendships_router.get(
-    "/{friend_id}/movies", response_model=MovieDetailsListResponse
-)
+@friendships_router.get("/{friend_id}/movies", response_model=MovieDetailsListResponse)
 def index_friend_movies(
     friend_id: Annotated[int, Path(gt=0)],
     movie_status: Annotated[MovieStatus, Query(alias="status")],
