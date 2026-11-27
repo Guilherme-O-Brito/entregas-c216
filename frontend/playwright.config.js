@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:5173";
+const frontendURL = "http://127.0.0.1:5174";
+const apiURL = "http://127.0.0.1:8001";
+const baseURL = process.env.E2E_BASE_URL || frontendURL;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -9,11 +11,19 @@ export default defineConfig({
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   webServer: process.env.E2E_BASE_URL
     ? undefined
-    : {
-        command: "npm run dev -- --host 127.0.0.1 --port 5173 --strictPort",
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-      },
+    : [
+        {
+          command: "node scripts/e2e-api.js",
+          url: `${apiURL}/openapi.json`,
+          env: { CORS_ORIGINS: frontendURL },
+          gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
+        },
+        {
+          command: "npm run dev -- --host 127.0.0.1 --port 5174 --strictPort",
+          url: frontendURL,
+          env: { VITE_API_URL: apiURL },
+        },
+      ],
   use: {
     baseURL,
     trace: "on-first-retry",
