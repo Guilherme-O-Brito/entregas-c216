@@ -47,6 +47,31 @@ export function sendFriendRequest(userId) {
   );
 }
 
+export async function listFriendRequests(signal) {
+  const { requests } = await request(
+    "/friendships/requests",
+    { signal },
+    "Não foi possível carregar as solicitações de amizade.",
+  );
+  return requests;
+}
+
+export function acceptFriendRequest(requestId) {
+  return request(
+    `/friendships/requests/${requestId}/accept`,
+    { method: "PATCH" },
+    "Não foi possível aceitar a solicitação.",
+  );
+}
+
+export function declineFriendRequest(requestId) {
+  return request(
+    `/friendships/requests/${requestId}`,
+    { method: "DELETE" },
+    "Não foi possível recusar a solicitação.",
+  );
+}
+
 export async function listFriendMovies(friendId, status, signal) {
   const movies = [];
   for (let skip = 0; ; skip += PAGE_SIZE) {

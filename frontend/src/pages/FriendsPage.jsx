@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AddFriendDialog } from "../components/AddFriendDialog";
 import { BackButton } from "../components/BackButton";
+import { FriendRequests } from "../components/FriendRequests";
 import { listFriends, removeFriend } from "../services/friends";
 import { FriendMoviesPage } from "./FriendMoviesPage";
 
@@ -32,14 +33,18 @@ export function FriendsPage({
     return () => controller.abort();
   }, [list]);
 
+  function reloadFriends() {
+    setList({ friends: null, error: "" });
+  }
+
   async function handleRemoveFriend(id) {
     setRemovingId(id);
     setRemoveError("");
     try {
       await removeFriend(id);
       setList((current) => ({
-        ...current,
-        friends: current.friends.filter((friend) => friend.id !== id),
+        friends: current.friends?.filter((friend) => friend.id !== id) ?? null,
+        error: "",
       }));
     } catch (error) {
       setRemoveError(error.message);
@@ -103,7 +108,7 @@ export function FriendsPage({
             </p>
             <button
               type="button"
-              onClick={() => setList({ friends: null, error: "" })}
+              onClick={reloadFriends}
               className="text-sm font-medium text-blue-700 hover:underline"
             >
               Tentar novamente
@@ -150,6 +155,7 @@ export function FriendsPage({
             ))}
           </ul>
         )}
+        {!friendId && <FriendRequests onAccepted={reloadFriends} />}
       </section>
     </main>
   );
