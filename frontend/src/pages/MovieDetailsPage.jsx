@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BackButton } from "../components/BackButton";
 import { MovieCover } from "../components/MovieCover";
 import { MovieFormDialog } from "../components/MovieFormDialog";
 import { getMovie, updateMovie } from "../services/movies";
@@ -31,14 +32,7 @@ export function MovieDetailsPage({ movieId, onBack, onSaved }) {
     <main className="min-h-screen bg-slate-50 px-6 py-10 text-slate-900">
       <section className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Voltar"
-            className="rounded border border-slate-200 bg-white px-4 py-2 text-blue-700 hover:bg-slate-100"
-          >
-            ←
-          </button>
+          <BackButton onBack={onBack} />
           {movie && (
             <button
               type="button"

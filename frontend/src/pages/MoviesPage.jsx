@@ -1,35 +1,40 @@
 import { useEffect, useState } from "react";
-import { MovieCard } from "../components/MovieCard";
 import { MovieFormDialog } from "../components/MovieFormDialog";
-import { MOVIES_PATH, movieIdFromPath, moviePath } from "../moviePaths";
+import { MovieList } from "../components/MovieList";
+import {
+  FRIENDS_PATH,
+  friendIdFromPath,
+  friendMoviesPath,
+  MOVIES_PATH,
+  movieIdFromPath,
+  moviePath,
+} from "../moviePaths";
 import { createMovie, listMovies } from "../services/movies";
+import { FriendsPage } from "./FriendsPage";
 import { MovieDetailsPage } from "./MovieDetailsPage";
-
-const filters = [
-  { value: "quero_assistir", label: "Quero assistir" },
-  { value: "assistido", label: "Já assistidos" },
-];
 
 export function MoviesPage({ onLogout }) {
   const [status, setStatus] = useState("quero_assistir");
   const [list, setList] = useState({ movies: null, loadError: false });
   const [creating, setCreating] = useState(false);
-  const [movieId, setMovieId] = useState(() =>
-    movieIdFromPath(window.location.pathname),
-  );
+  const [path, setPath] = useState(() => window.location.pathname);
+  const movieId = movieIdFromPath(path);
+  const friendId = friendIdFromPath(path);
+  const isFriendsView = path === FRIENDS_PATH || friendId !== null;
 
   useEffect(() => {
-    function syncMovie() {
-      setMovieId(movieIdFromPath(window.location.pathname));
+    function syncPath() {
+      setPath(window.location.pathname);
       setCreating(false);
     }
 
-    window.addEventListener("popstate", syncMovie);
-    return () => window.removeEventListener("popstate", syncMovie);
+    window.addEventListener("popstate", syncPath);
+    return () => window.removeEventListener("popstate", syncPath);
   }, []);
 
   useEffect(() => {
-    if (movieId || list.loadError || list.movies !== null) return;
+    if (movieId || isFriendsView || list.loadError || list.movies !== null)
+      return;
 
     const controller = new AbortController();
 
@@ -44,7 +49,7 @@ export function MoviesPage({ onLogout }) {
       });
 
     return () => controller.abort();
-  }, [list, movieId]);
+  }, [list, movieId, isFriendsView]);
 
   function reloadMovies() {
     setList({ movies: null, loadError: false });
@@ -56,18 +61,29 @@ export function MoviesPage({ onLogout }) {
     reloadMovies();
   }
 
-  function openMovie(id) {
-    window.history.pushState({ fromMovies: true }, "", moviePath(id));
-    setMovieId(String(id));
+  function navigate(next, returnTo) {
+    window.history.pushState({ returnTo }, "", next);
+    setPath(next);
   }
 
-  function backToMovies() {
-    if (window.history.state?.fromMovies) {
+  function goBack(fallback) {
+    if (window.history.state?.returnTo === fallback) {
       window.history.back();
     } else {
-      window.history.replaceState(null, "", MOVIES_PATH);
-      setMovieId(null);
+      window.history.replaceState(null, "", fallback);
+      setPath(fallback);
     }
+  }
+
+  if (isFriendsView) {
+    return (
+      <FriendsPage
+        friendId={friendId}
+        onOpenFriend={(id) => navigate(friendMoviesPath(id), FRIENDS_PATH)}
+        onBack={() => goBack(MOVIES_PATH)}
+        onBackToFriends={() => goBack(FRIENDS_PATH)}
+      />
+    );
   }
 
   if (movieId) {
@@ -75,7 +91,7 @@ export function MoviesPage({ onLogout }) {
       <MovieDetailsPage
         key={movieId}
         movieId={movieId}
-        onBack={backToMovies}
+        onBack={() => goBack(MOVIES_PATH)}
         onSaved={reloadMovies}
       />
     );
@@ -89,6 +105,13 @@ export function MoviesPage({ onLogout }) {
         <header className="flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Meus filmes</h1>
           <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(FRIENDS_PATH, MOVIES_PATH)}
+              className="rounded border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-slate-100"
+            >
+              Amigos
+            </button>
             <button
               type="button"
               onClick={() => setCreating(true)}
@@ -105,47 +128,14 @@ export function MoviesPage({ onLogout }) {
             </button>
           </div>
         </header>
-        <fieldset className="inline-flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <legend className="sr-only">Status dos filmes</legend>
-          {filters.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={status === value}
-              onClick={() => setStatus(value)}
-              className="rounded px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 aria-pressed:bg-blue-600 aria-pressed:text-white"
-            >
-              {label}
-            </button>
-          ))}
-        </fieldset>
-
-        {list.loadError ? (
-          <div className="space-y-2">
-            <p role="alert" className="text-sm text-red-700">
-              Não foi possível carregar seus filmes.
-            </p>
-            <button
-              type="button"
-              onClick={reloadMovies}
-              className="text-sm font-medium text-blue-700 hover:underline"
-            >
-              Tentar novamente
-            </button>
-          </div>
-        ) : !visible ? (
-          <p role="status" className="text-slate-600">
-            Carregando filmes...
-          </p>
-        ) : visible.length === 0 ? (
-          <p className="text-slate-600">Nenhum filme nesta lista.</p>
-        ) : (
-          <ul className="grid grid-cols-5 gap-5">
-            {visible.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} onOpen={openMovie} />
-            ))}
-          </ul>
-        )}
+        <MovieList
+          status={status}
+          onStatusChange={setStatus}
+          movies={visible}
+          error={list.loadError ? "Não foi possível carregar seus filmes." : ""}
+          onRetry={reloadMovies}
+          onOpen={(id) => navigate(moviePath(id), MOVIES_PATH)}
+        />
         {creating && (
           <MovieFormDialog
             initialStatus={status}

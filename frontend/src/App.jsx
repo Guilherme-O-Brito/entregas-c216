@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthForm } from "./components/AuthForm";
 import { useSession } from "./hooks/useSession";
-import { MOVIES_PATH, movieIdFromPath } from "./moviePaths";
+import { isSignedInPath, MOVIES_PATH } from "./moviePaths";
 import { MoviesPage } from "./pages/MoviesPage";
 import { login, register } from "./services/auth";
 import { endSession, startSession } from "./services/session";
@@ -15,7 +15,7 @@ export default function App() {
     function syncPath() {
       const current = window.location.pathname;
       const path = session ? MOVIES_PATH : "/";
-      if (current !== path && (!session || !movieIdFromPath(current))) {
+      if (current !== path && (!session || !isSignedInPath(current))) {
         window.history.replaceState(null, "", path);
       }
     }
