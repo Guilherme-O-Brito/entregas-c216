@@ -133,7 +133,7 @@ export function FriendsPage({
                     type="button"
                     onClick={() => handleRemoveFriend(id)}
                     disabled={removingId !== null}
-                    className="text-sm font-medium text-slate-700 disabled:opacity-50"
+                    className="rounded bg-red-700 px-3 py-1.5 text-sm font-medium text-white enabled:hover:bg-red-800 disabled:opacity-50"
                   >
                     {removingId === id ? "Removendo..." : "Remover amigo"}
                   </button>
