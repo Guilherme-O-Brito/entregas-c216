@@ -49,6 +49,10 @@ function mockMovies(initialMovies = []) {
       ? jsonResponse(movie)
       : jsonResponse({ detail: "Filme não encontrado." }, 404);
   });
+  const remove = vi.fn((id) => {
+    movies.delete(id);
+    return new Response(null, { status: 204 });
+  });
   vi.stubGlobal("fetch", async (url, { method = "GET", body, headers }) => {
     expect(headers.get("Authorization")).toBe(`Bearer ${session.access_token}`);
     const { pathname } = new URL(url);
@@ -63,9 +67,10 @@ function mockMovies(initialMovies = []) {
       });
     }
     const id = Number(pathname.split("/").at(-1));
+    if (method === "DELETE") return remove(id);
     return method === "PATCH" ? update(id, JSON.parse(body)) : get(id);
   });
-  return { create, update, get };
+  return { create, update, get, remove };
 }
 
 it("abre o novo filme nas duas abas e mostra o cadastro na aba escolhida no modal", async () => {
@@ -162,6 +167,62 @@ it("mantém o modal e os dados preenchidos quando o cadastro falha", async () =>
     "Não foi possível cadastrar o filme.",
   );
   expect(dialog.getByLabelText("Título")).toHaveValue("Alien");
+});
+
+it("pede confirmação para excluir e atualiza a lista após a exclusão", async () => {
+  const user = userEvent.setup();
+  const { remove } = mockMovies([
+    watched,
+    { ...watched, id: 2, title: "Alien" },
+  ]);
+  await renderApp();
+  await user.click(screen.getByRole("button", { name: "Já assistidos" }));
+  await user.click(await screen.findByRole("button", { name: "Arrival" }));
+  const open = await screen.findByRole("button", { name: "Excluir filme" });
+
+  await user.click(open);
+  let dialog = within(screen.getByRole("dialog", { name: "Excluir filme" }));
+  await user.click(dialog.getByRole("button", { name: "Cancelar" }));
+  expect(remove).not.toHaveBeenCalled();
+
+  await user.click(open);
+  dialog = within(screen.getByRole("dialog", { name: "Excluir filme" }));
+  await user.click(dialog.getByRole("button", { name: "Confirmar exclusão" }));
+
+  expect(await screen.findByRole("button", { name: "Alien" })).toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Arrival" }),
+  ).not.toBeInTheDocument();
+  expect(remove).toHaveBeenCalledExactlyOnceWith(1);
+  expect(window.location.pathname).toBe("/inicio");
+});
+
+it("mostra o erro da API e permite tentar excluir o filme novamente", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState(null, "", "/inicio/filmes/1");
+  const { remove } = mockMovies([watched]);
+  remove.mockImplementationOnce(() =>
+    jsonResponse({ detail: "Falha ao excluir o filme." }, 503),
+  );
+  await renderApp();
+  await user.click(
+    await screen.findByRole("button", { name: "Excluir filme" }),
+  );
+  const dialog = within(screen.getByRole("dialog", { name: "Excluir filme" }));
+  const confirm = dialog.getByRole("button", { name: "Confirmar exclusão" });
+  await user.click(confirm);
+
+  expect(await dialog.findByRole("alert")).toHaveTextContent(
+    "Falha ao excluir o filme.",
+  );
+  expect(window.location.pathname).toBe("/inicio/filmes/1");
+  expect(confirm).toBeEnabled();
+
+  await user.click(confirm);
+  expect(
+    await screen.findByRole("heading", { name: "Meus filmes" }),
+  ).toBeVisible();
+  expect(remove).toHaveBeenCalledTimes(2);
 });
 
 it("abre um detalhe direto, exibe o erro da API e permite voltar à lista", async () => {

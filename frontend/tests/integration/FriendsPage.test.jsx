@@ -142,6 +142,7 @@ it("abre os filmes de um amigo por status e preserva a aba do usuário ao voltar
   expect(screen.getByText("9/10")).toBeVisible();
   expect(screen.getByText("Ótima ficção científica.")).toBeVisible();
   expect(screen.queryByRole("button", { name: "Editar" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Excluir filme" })).toBeNull();
   expect(window.location.pathname).toBe("/inicio/amigos/2/filmes/assistido/11");
 
   await user.click(screen.getByRole("button", { name: "Voltar" }));
