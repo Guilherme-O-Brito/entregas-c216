@@ -8,6 +8,10 @@ const friends = [
   { id: 2, name: "Ana" },
   { id: 3, name: "Bruno" },
 ];
+const received = [
+  { id: 12, requested_by_id: 4, requested_by_name: "Carla" },
+  { id: 13, requested_by_id: 5, requested_by_name: "Diego" },
+];
 
 beforeEach(() => {
   vi.resetModules();
@@ -25,9 +29,24 @@ async function renderApp() {
   return render(<App />);
 }
 
-function mockFriendsApi(friendList = friends) {
+function mockFriendsApi(friendList = friends, requestList = []) {
   const cover = "https://images.example.com/arrival.jpg";
   let currentFriends = [...friendList];
+  let pending = [...requestList];
+  const listRequests = vi.fn(() => jsonResponse({ requests: pending }));
+  const accept = vi.fn((id) => {
+    const request = pending.find((entry) => entry.id === id);
+    currentFriends.push({
+      id: request.requested_by_id,
+      name: request.requested_by_name,
+    });
+    pending = pending.filter((entry) => entry.id !== id);
+    return jsonResponse({ id, status: "accepted" });
+  });
+  const decline = vi.fn((id) => {
+    pending = pending.filter((entry) => entry.id !== id);
+    return new Response(null, { status: 204 });
+  });
   const remove = vi.fn((id) => {
     currentFriends = currentFriends.filter((friend) => friend.id !== id);
     return new Response(null, { status: 204 });
@@ -36,6 +55,15 @@ function mockFriendsApi(friendList = friends) {
     expect(headers.get("Authorization")).toBe(`Bearer ${session.access_token}`);
     const { pathname, searchParams } = new URL(url);
     if (pathname === "/movies/") return jsonResponse({ movies: [] });
+    if (pathname === "/friendships/requests") return listRequests();
+    const requestPath = /^\/friendships\/requests\/(\d+)(\/accept)?$/.exec(
+      pathname,
+    );
+    if (requestPath) {
+      const [, id, acceptPath] = requestPath;
+      if (method === "PATCH" && acceptPath) return accept(Number(id));
+      if (method === "DELETE" && !acceptPath) return decline(Number(id));
+    }
     if (pathname === "/friendships/")
       return jsonResponse({ friends: currentFriends });
     if (method === "DELETE" && pathname === "/friendships/2") return remove(2);
@@ -64,7 +92,7 @@ function mockFriendsApi(friendList = friends) {
     throw new Error(`Rota inesperada: ${pathname}`);
   });
   vi.stubGlobal("fetch", fetchMock);
-  return { fetchMock, cover, remove };
+  return { fetchMock, cover, remove, listRequests, accept, decline };
 }
 
 it("abre os filmes de um amigo por status e preserva a aba do usuário ao voltar", async () => {
@@ -180,6 +208,89 @@ it("permite adicionar amigos mesmo quando a lista está vazia", async () => {
     await screen.findByText("Você ainda não tem amigos cadastrados."),
   ).toBeVisible();
   expect(screen.getByRole("button", { name: "Adicionar amigo" })).toBeEnabled();
+  expect(
+    await screen.findByText("Nenhuma solicitação de amizade recebida."),
+  ).toBeVisible();
+});
+
+it("aceita um pedido recebido e atualiza a lista de amigos", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState(null, "", "/inicio/amigos");
+  const { accept, decline } = mockFriendsApi(friends, received);
+  await renderApp();
+  const requests = within(
+    screen.getByRole("region", { name: "Solicitações de amizade" }),
+  );
+  const acceptCarla = await requests.findByRole("button", {
+    name: "Aceitar pedido de Carla",
+  });
+  expect(screen.queryByRole("button", { name: "Carla" })).toBeNull();
+
+  await user.click(acceptCarla);
+
+  expect(await screen.findByRole("button", { name: "Carla" })).toBeVisible();
+  expect(requests.queryByText("Carla")).toBeNull();
+  expect(requests.getByText("Diego")).toBeVisible();
+  expect(accept).toHaveBeenCalledExactlyOnceWith(12);
+  expect(decline).not.toHaveBeenCalled();
+});
+
+it("recusa o pedido sem adicionar a pessoa à lista de amigos", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState(null, "", "/inicio/amigos");
+  const { accept, decline } = mockFriendsApi(friends, [received[1]]);
+  await renderApp();
+
+  await user.click(
+    await screen.findByRole("button", { name: "Recusar pedido de Diego" }),
+  );
+
+  expect(
+    await screen.findByText("Nenhuma solicitação de amizade recebida."),
+  ).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Diego" })).toBeNull();
+  expect(decline).toHaveBeenCalledExactlyOnceWith(13);
+  expect(accept).not.toHaveBeenCalled();
+});
+
+it("mantém a solicitação visível quando a API rejeita a ação", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState(null, "", "/inicio/amigos");
+  const { accept } = mockFriendsApi([], [received[0]]);
+  accept.mockReturnValueOnce(
+    jsonResponse({ detail: "Não foi possível aceitar agora." }, 503),
+  );
+  await renderApp();
+  const button = await screen.findByRole("button", {
+    name: "Aceitar pedido de Carla",
+  });
+
+  await user.click(button);
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Não foi possível aceitar agora.",
+  );
+  expect(button).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Carla" })).toBeNull();
+});
+
+it("permite tentar carregar as solicitações novamente após uma falha", async () => {
+  const user = userEvent.setup();
+  window.history.replaceState(null, "", "/inicio/amigos");
+  const { listRequests } = mockFriendsApi([], [received[0]]);
+  listRequests.mockReturnValueOnce(jsonResponse({}, 503));
+  await renderApp();
+  const requests = within(
+    screen.getByRole("region", { name: "Solicitações de amizade" }),
+  );
+
+  expect(await requests.findByRole("alert")).toHaveTextContent(
+    "Não foi possível carregar as solicitações de amizade.",
+  );
+  await user.click(requests.getByRole("button", { name: "Tentar novamente" }));
+
+  expect(await requests.findByText("Carla")).toBeVisible();
+  expect(listRequests).toHaveBeenCalledTimes(2);
 });
 
 it("resolve o nome do amigo quando os filmes são abertos por link direto", async () => {

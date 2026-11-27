@@ -34,6 +34,8 @@ function mockDirectory(users) {
     expect(headers.get("Authorization")).toBe(`Bearer ${session.access_token}`);
     const { pathname, searchParams } = new URL(url);
     if (pathname === "/auth/me") return jsonResponse(viewer);
+    if (pathname === "/friendships/requests")
+      return jsonResponse({ requests: [] });
     if (pathname === "/friendships/" && method === "POST") {
       return requests(JSON.parse(body));
     }
@@ -104,10 +106,7 @@ it("pesquisa usuários e volta à primeira página quando o nome muda", async ()
 
 it("envia o pedido para a pessoa selecionada e não a inclui entre os amigos", async () => {
   const user = userEvent.setup();
-  const { requests, fetchMock } = mockDirectory([
-    viewer,
-    { id: 7, name: "Ana" },
-  ]);
+  const { requests } = mockDirectory([viewer, { id: 7, name: "Ana" }]);
   const dialog = await openDialog(user);
   await user.click(
     await dialog.findByRole("button", { name: "Adicionar Ana" }),
@@ -121,8 +120,8 @@ it("envia o pedido para a pessoa selecionada e não a inclui entre os amigos", a
   expect(screen.queryByRole("button", { name: "Ana" })).toBeNull();
   expect(screen.queryByText("Pedido enviado para Ana.")).toBeNull();
   expect(
-    fetchMock.mock.calls.some(([url]) => url.includes("/friendships/requests")),
-  ).toBe(false);
+    screen.getByText("Nenhuma solicitação de amizade recebida."),
+  ).toBeVisible();
 });
 
 it("exibe o erro da API e mantém o resultado se o pedido falhar", async () => {

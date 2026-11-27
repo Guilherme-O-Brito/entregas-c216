@@ -1,6 +1,9 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import {
+  acceptFriendRequest,
+  declineFriendRequest,
   listFriendMovies,
+  listFriendRequests,
   listFriends,
   removeFriend,
   sendFriendRequest,
@@ -90,4 +93,41 @@ it("envia o pedido pela rota de amizade com o ID do destinatário", async () => 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: 2 }),
   });
+});
+
+it("busca as solicitações de amizade recebidas", async () => {
+  const requests = [{ id: 3, requested_by_id: 2, requested_by_name: "Ana" }];
+  vi.mocked(authenticatedFetch).mockResolvedValueOnce(
+    jsonResponse({ requests }),
+  );
+  const { signal } = new AbortController();
+
+  await expect(listFriendRequests(signal)).resolves.toEqual(requests);
+  expect(authenticatedFetch).toHaveBeenCalledExactlyOnceWith(
+    "/friendships/requests",
+    { signal },
+  );
+});
+
+it("aceita uma solicitação pelo ID do pedido", async () => {
+  const accepted = { id: 3, status: "accepted" };
+  vi.mocked(authenticatedFetch).mockResolvedValueOnce(jsonResponse(accepted));
+
+  await expect(acceptFriendRequest(3)).resolves.toEqual(accepted);
+  expect(authenticatedFetch).toHaveBeenCalledExactlyOnceWith(
+    "/friendships/requests/3/accept",
+    { method: "PATCH" },
+  );
+});
+
+it("recusa uma solicitação e aceita a resposta 204", async () => {
+  vi.mocked(authenticatedFetch).mockResolvedValueOnce(
+    new Response(null, { status: 204 }),
+  );
+
+  await expect(declineFriendRequest(3)).resolves.toBeNull();
+  expect(authenticatedFetch).toHaveBeenCalledExactlyOnceWith(
+    "/friendships/requests/3",
+    { method: "DELETE" },
+  );
 });

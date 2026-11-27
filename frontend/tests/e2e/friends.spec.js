@@ -199,3 +199,52 @@ test("pesquisa usuários, navega pelas páginas e envia um pedido pelo modal", a
     expect.objectContaining({ requested_by_id: owner.id }),
   ]);
 });
+
+test("aceita e recusa solicitações recebidas na página de amigos", async ({
+  page,
+}) => {
+  const { password, ownerToken, send } = await signIn(page);
+  const owner = await send("/auth/me", "GET", undefined, ownerToken);
+  const senders = [];
+  for (const name of ["Carla", "Diego"]) {
+    const email = `e2e-${randomUUID()}@example.com`;
+    const sender = await send("/auth/register", "POST", {
+      name,
+      email,
+      password,
+    });
+    const { access_token: senderToken } = await send("/auth/login", "POST", {
+      email,
+      password,
+    });
+    await send("/friendships/", "POST", { user_id: owner.id }, senderToken);
+    senders.push(sender);
+  }
+
+  await page.getByRole("button", { name: "Amigos" }).click();
+  const inbox = page.getByRole("region", { name: "Solicitações de amizade" });
+  await expect(inbox.getByRole("listitem")).toHaveCount(2);
+  await inbox.getByRole("button", { name: "Aceitar pedido de Carla" }).click();
+  await expect(
+    page.getByRole("button", { name: "Carla", exact: true }),
+  ).toBeVisible();
+  await expect(inbox.getByText("Carla")).toHaveCount(0);
+
+  await inbox.getByRole("button", { name: "Recusar pedido de Diego" }).click();
+  await expect(
+    inbox.getByText("Nenhuma solicitação de amizade recebida."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Diego", exact: true }),
+  ).toHaveCount(0);
+
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Carla", exact: true }),
+  ).toBeVisible();
+  await expect(
+    inbox.getByText("Nenhuma solicitação de amizade recebida."),
+  ).toBeVisible();
+  const { friends } = await send("/friendships/", "GET", undefined, ownerToken);
+  expect(friends).toEqual([{ id: senders[0].id, name: "Carla" }]);
+});
