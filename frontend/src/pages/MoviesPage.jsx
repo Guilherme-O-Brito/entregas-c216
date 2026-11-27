@@ -3,8 +3,9 @@ import { MovieFormDialog } from "../components/MovieFormDialog";
 import { MovieList } from "../components/MovieList";
 import {
   FRIENDS_PATH,
-  friendIdFromPath,
+  friendMoviePath,
   friendMoviesPath,
+  friendRouteFromPath,
   MOVIES_PATH,
   movieIdFromPath,
   moviePath,
@@ -19,8 +20,8 @@ export function MoviesPage({ onLogout }) {
   const [creating, setCreating] = useState(false);
   const [path, setPath] = useState(() => window.location.pathname);
   const movieId = movieIdFromPath(path);
-  const friendId = friendIdFromPath(path);
-  const isFriendsView = path === FRIENDS_PATH || friendId !== null;
+  const friendRoute = friendRouteFromPath(path);
+  const isFriendsView = path === FRIENDS_PATH || friendRoute !== null;
 
   useEffect(() => {
     function syncPath() {
@@ -78,10 +79,17 @@ export function MoviesPage({ onLogout }) {
   if (isFriendsView) {
     return (
       <FriendsPage
-        friendId={friendId}
+        friendRoute={friendRoute}
         onOpenFriend={(id) => navigate(friendMoviesPath(id), FRIENDS_PATH)}
+        onOpenFriendMovie={(friendId, movieId, status) =>
+          navigate(
+            friendMoviePath(friendId, movieId, status),
+            friendMoviesPath(friendId),
+          )
+        }
         onBack={() => goBack(MOVIES_PATH)}
         onBackToFriends={() => goBack(FRIENDS_PATH)}
+        onBackToFriendMovies={(id) => goBack(friendMoviesPath(id))}
       />
     );
   }

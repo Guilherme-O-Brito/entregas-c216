@@ -1,35 +1,57 @@
 import { useEffect, useState } from "react";
 import { BackButton } from "../components/BackButton";
+import { MovieDetails } from "../components/MovieDetails";
 import { MovieList } from "../components/MovieList";
 import { listFriendMovies } from "../services/friends";
 
-export function FriendMoviesPage({ friend, onBack }) {
-  const [status, setStatus] = useState("quero_assistir");
-  const [list, setList] = useState({ movies: null, error: "" });
+export function FriendMoviesPage({
+  friend,
+  movieId,
+  movieStatus,
+  onOpenMovie,
+  onBack,
+  onBackToMovies,
+}) {
+  const [selectedStatus, setSelectedStatus] = useState(
+    movieStatus ?? "quero_assistir",
+  );
+  const [list, setList] = useState(null);
+  const status = movieStatus ?? selectedStatus;
+  const current = list?.status === status ? list : null;
 
   useEffect(() => {
-    if (list.movies !== null || list.error) return;
+    if (current) return;
 
     const controller = new AbortController();
     listFriendMovies(friend.id, status, controller.signal)
       .then((movies) => {
-        if (!controller.signal.aborted) setList({ movies, error: "" });
+        if (!controller.signal.aborted) setList({ status, movies, error: "" });
       })
       .catch((error) => {
         if (!controller.signal.aborted)
-          setList({ movies: null, error: error.message });
+          setList({ status, movies: null, error: error.message });
       });
     return () => controller.abort();
-  }, [friend.id, status, list]);
+  }, [friend.id, status, current]);
 
   function reloadMovies() {
-    setList({ movies: null, error: "" });
+    setList(null);
   }
 
-  function changeStatus(next) {
-    if (next === status) return;
-    setStatus(next);
-    reloadMovies();
+  if (movieId) {
+    const movie = current?.movies?.find(({ id }) => String(id) === movieId);
+    const error =
+      current?.error ||
+      (current?.movies && !movie ? "Filme não encontrado." : "");
+    return (
+      <MovieDetails
+        movie={movie}
+        owner={friend.name}
+        error={error}
+        onBack={onBackToMovies}
+        onRetry={reloadMovies}
+      />
+    );
   }
 
   return (
@@ -41,9 +63,10 @@ export function FriendMoviesPage({ friend, onBack }) {
         </header>
         <MovieList
           status={status}
-          onStatusChange={changeStatus}
-          movies={list.movies}
-          error={list.error}
+          onStatusChange={setSelectedStatus}
+          movies={current?.movies}
+          error={current?.error}
+          onOpen={(id) => onOpenMovie(id, status)}
           onRetry={reloadMovies}
         />
       </section>

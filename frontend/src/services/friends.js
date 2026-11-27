@@ -2,13 +2,15 @@ import { authenticatedFetch } from "./session";
 
 const PAGE_SIZE = 10;
 
-async function request(path, signal, fallback) {
+async function request(path, options, fallback) {
   let response;
   try {
-    response = await authenticatedFetch(path, { signal });
+    response = await authenticatedFetch(path, options);
   } catch {
     throw new Error(fallback);
   }
+  if (response.status === 204) return null;
+
   const body = await response.json().catch(() => null);
   if (!response.ok || !body) {
     throw new Error(typeof body?.detail === "string" ? body.detail : fallback);
@@ -19,10 +21,18 @@ async function request(path, signal, fallback) {
 export async function listFriends(signal) {
   const { friends } = await request(
     "/friendships/",
-    signal,
+    { signal },
     "Não foi possível carregar seus amigos.",
   );
   return friends;
+}
+
+export function removeFriend(friendId) {
+  return request(
+    `/friendships/${friendId}`,
+    { method: "DELETE" },
+    "Não foi possível remover o amigo.",
+  );
 }
 
 export async function listFriendMovies(friendId, status, signal) {
@@ -31,7 +41,7 @@ export async function listFriendMovies(friendId, status, signal) {
     const query = new URLSearchParams({ status, skip, limit: PAGE_SIZE });
     const { movies: page } = await request(
       `/friendships/${friendId}/movies?${query}`,
-      signal,
+      { signal },
       "Não foi possível carregar os filmes do amigo.",
     );
     movies.push(...page);

@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
 import { BackButton } from "../components/BackButton";
-import { listFriends } from "../services/friends";
+import { listFriends, removeFriend } from "../services/friends";
 import { FriendMoviesPage } from "./FriendMoviesPage";
 
 export function FriendsPage({
-  friendId,
+  friendRoute,
   onOpenFriend,
+  onOpenFriendMovie,
   onBack,
   onBackToFriends,
+  onBackToFriendMovies,
 }) {
   const [list, setList] = useState({ friends: null, error: "" });
+  const [removingId, setRemovingId] = useState(null);
+  const [removeError, setRemoveError] = useState("");
 
   useEffect(() => {
     if (list.friends !== null || list.error) return;
@@ -26,13 +30,36 @@ export function FriendsPage({
     return () => controller.abort();
   }, [list]);
 
+  async function handleRemoveFriend(id) {
+    setRemovingId(id);
+    setRemoveError("");
+    try {
+      await removeFriend(id);
+      setList((current) => ({
+        ...current,
+        friends: current.friends.filter((friend) => friend.id !== id),
+      }));
+    } catch (error) {
+      setRemoveError(error.message);
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  const friendId = friendRoute?.friendId;
   const friend = list.friends?.find(({ id }) => String(id) === friendId);
   if (friend) {
     return (
       <FriendMoviesPage
         key={friend.id}
         friend={friend}
+        movieId={friendRoute.movieId}
+        movieStatus={friendRoute.status}
+        onOpenMovie={(movieId, status) =>
+          onOpenFriendMovie(friend.id, movieId, status)
+        }
         onBack={onBackToFriends}
+        onBackToMovies={() => onBackToFriendMovies(friend.id)}
       />
     );
   }
@@ -56,6 +83,11 @@ export function FriendsPage({
           )}
         </header>
 
+        {!friendId && removeError && (
+          <p role="alert" className="text-sm text-red-700">
+            {removeError}
+          </p>
+        )}
         {list.error ? (
           <div className="space-y-2">
             <p role="alert" className="text-sm text-red-700">
@@ -91,17 +123,19 @@ export function FriendsPage({
                 <button
                   type="button"
                   onClick={() => onOpenFriend(id)}
-                  className="grow break-words p-4 text-left font-semibold text-blue-700 hover:bg-slate-50"
+                  disabled={removingId === id}
+                  className="grow break-words p-4 text-left font-semibold text-blue-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   {name}
                 </button>
                 <div className="border-t border-slate-100 px-4 py-2">
                   <button
                     type="button"
-                    disabled
+                    onClick={() => handleRemoveFriend(id)}
+                    disabled={removingId !== null}
                     className="text-sm font-medium text-slate-700 disabled:opacity-50"
                   >
-                    Remover amigo
+                    {removingId === id ? "Removendo..." : "Remover amigo"}
                   </button>
                 </div>
               </li>
